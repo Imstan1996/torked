@@ -149,6 +149,14 @@
   .slot .lbl{position:absolute;bottom:-3px;left:0;right:0;text-align:center;font-size:8px;color:var(--ink-dim);letter-spacing:.3px}
   .gearsum{display:flex;justify-content:center;gap:16px;margin-top:6px;font-size:13px;color:var(--ink-dim)}
   .gearsum b{color:var(--gold-bright)}
+  #wornList{margin-top:10px}
+  .wornrow{display:flex;align-items:center;gap:9px;padding:6px 4px;border-top:1px solid var(--line);cursor:pointer}
+  .wornrow:hover{background:#1a1308}
+  .wornrow .wn{flex:1;font-family:"Cinzel",serif;font-size:12px;line-height:1.2}
+  .wornrow .wn small{display:block;color:var(--ink-dim);font-family:"IM Fell English",serif;font-size:11px;letter-spacing:0}
+  .wornrow .ws{color:var(--gold-bright);font-family:"Cinzel",serif;font-size:11px;text-align:right}
+  .wornempty{color:var(--ink-dim);font-style:italic;font-size:13px;padding:10px 2px;line-height:1.5}
+  .wornempty b{color:var(--gold)}
 
   /* detail */
   #detail{margin-top:12px;border:1px solid var(--line);border-radius:8px;padding:11px;background:#100c06;min-height:54px}
@@ -198,7 +206,7 @@
     </div>
 
     <details class="howplay">
-      <summary>⚔ How to play</summary>
+      <summary>How to play</summary>
       <div class="body">
         Just type what you want to do in plain English — the AI runs the whole world around you.<br><br>
         <b>Explore</b> — go north · examine the altar · open the chest<br>
@@ -316,6 +324,7 @@
               <span>+HP <b id="sumHp">0</b></span>
             </div>
           </div>
+          <div id="wornList"></div>
         </div>
 
         <div id="detail"><div class="dt-empty">Select an item to inspect it.</div></div>
@@ -606,7 +615,10 @@ $('#obDemo').addEventListener('click',()=>{ $('#onboard').style.display='none'; 
 $('#obAdv').addEventListener('click',()=>{ $('#onboard').style.display='none'; $('#setup').style.display='block'; });
 
 // show the simple onboarding only on a fresh first visit (no remembered key, not file://)
-if(!isFile && !$('#key').value.trim()){ $('#setup').style.display='none'; $('#onboard').style.display='block'; }
+if(!isFile){
+  $('#setup').style.display='none'; $('#onboard').style.display='block';   // simplified instructions screen is the default login, always
+  if($('#provider').value==='groq'){ const k=$('#key').value.trim(); if(k) $('#obKey').value=k; }   // prefill remembered Groq key
+}
 $('#demoBtn').addEventListener('click',()=>{
   G.cfg={provider:'',base_url:'',token:'',model:'',difficulty:$('#diff').value,seed:$('#seed').value.trim(),demo:true};
   beginGame();
@@ -688,6 +700,13 @@ function renderWorn(){
   }).join('');
   $('#eqGrid').querySelectorAll('.slot.filled').forEach(c=>c.addEventListener('click',()=>select(c.getAttribute('data-id'),'worn')));
   $('#sumAtk').textContent=G.atk; $('#sumDef').textContent=G.def; $('#sumHp').textContent=G.equipHp;
+  // list each equipped item with its stats
+  const worn=Object.entries(G.worn).filter(([,v])=>v);
+  $('#wornList').innerHTML = worn.length ? worn.map(([slot,it])=>{
+    const st=[]; if(it.atk)st.push('Atk +'+it.atk); if(it.def)st.push('Def +'+it.def); if(it.hp)st.push('HP +'+it.hp);
+    return `<div class="wornrow" data-id="${it.id}"><span>${svg(it.icon,it.rarity,18)}</span><span class="wn r-${it.rarity}">${esc(it.name)}<small>${SLOT_LBL[slot]}</small></span><span class="ws">${st.join(' · ')||'—'}</span></div>`;
+  }).join('') : '<div class="wornempty">Nothing equipped yet — take an item, then type <b>equip &lt;name&gt;</b> or click it in your Satchel.</div>';
+  $('#wornList').querySelectorAll('.wornrow').forEach(r=>r.addEventListener('click',()=>select(r.getAttribute('data-id'),'worn')));
 }
 function findItem(id){ return G.bag.find(x=>x.id===id) || Object.values(G.worn).find(x=>x&&x.id===id); }
 function select(id,src){ G.sel=findItem(id)||null; renderDetail(src); renderBag(); renderWorn(); }
@@ -781,7 +800,40 @@ function submitCommand(){
   const low=raw.toLowerCase();
   if(low==='help'||low==='?'){ return help(); }
   if(low==='clear'){ $('#log').innerHTML=''; return; }
+  if(handleGearCommand(low)) return;     // equip / wear / unequip / drink handled here
   if(G.cfg.demo) demoTurn(raw); else aiTurn(raw);
+}
+// typed inventory commands so "wear the steel helm" actually equips it into the Equipment tab
+function findBagItem(q, filt){
+  q=(q||'').replace(/^\s*(the|a|an|my|some)\s+/,'').trim();
+  const pool=G.bag.filter(filt);
+  if(!q) return pool[0]||null;
+  return pool.find(i=>i.name.toLowerCase()===q) || pool.find(i=>i.name.toLowerCase().includes(q))
+      || pool.find(i=>q.split(/\s+/).filter(w=>w.length>2).some(w=>i.name.toLowerCase().includes(w))) || null;
+}
+function handleGearCommand(low){
+  let m=low.match(/^(?:equip|wear|wield|don|put on)\s+(.+)$/);
+  if(m){
+    const it=findBagItem(m[1], i=>i.slot);
+    if(it){ equip(it); const wb=document.querySelector('.tabbar button[data-tab="worn"]'); if(wb) wb.click(); }
+    else line("You aren't carrying anything like that to wear.",'sys');
+    return true;
+  }
+  m=low.match(/^(?:unequip|take off|doff)\s+(.+)$/) || low.match(/^remove\s+(.+)$/);
+  if(m){
+    const q=m[1].replace(/^\s*(the|a|an|my)\s+/,'').trim();
+    const entry=Object.entries(G.worn).find(([s,v])=>v && (v.name.toLowerCase().includes(q)||q.includes(s)||q.includes((SLOT_LBL[s]||'').toLowerCase())));
+    if(entry){ unequip(entry[0]); return true; }
+    if(/^(?:unequip|doff)/.test(low)){ line("You aren't wearing anything like that.",'sys'); return true; }
+    return false;   // ambiguous "remove/take off X" — let the world handle it
+  }
+  if(/^(?:drink|quaff)(\s+.+)?$/.test(low)){
+    const q=(low.match(/^(?:drink|quaff)\s+(.+)$/)||[])[1]||'';
+    const it=findBagItem(q, i=>i.type==='potion') || G.bag.find(i=>i.type==='potion');
+    if(it) usePotion(it); else line('You have no potions to drink.','sys');
+    return true;
+  }
+  return false;
 }
 function help(){ line('Type plain English: <span class="sys">go north · examine the altar · open the chest · attack the troll · equip the steel sword · drink a potion · rest</span>. Each attack rolls a d6 — a <span class="boss">6 is a critical strike for ×5 damage</span>. Click items in your Satchel/Equipment to inspect, equip or use them.','sys'); }
 
