@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TORKED — an ever-changing realm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0a06; --panel:#15110a; --panel2:#1c160d; --ink:#e9dcb8; --ink-dim:#9c8a63;
+    --gold:#d8a93a; --gold-bright:#f4cf6b; --blood:#a2362e; --green:#8fae5a; --line:#3a2f1c;
+    --shadow:rgba(0,0,0,.55);
+    --r-common:#cdc7b6; --r-rare:#5aa0e0; --r-epic:#b277e6; --r-legendary:#f4a623;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:
+      radial-gradient(1200px 620px at 50% -8%, #221a0c 0%, var(--bg) 62%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 2px, transparent 2px 4px),
+      var(--bg);
+    color:var(--ink); font-family:"IM Fell English","Iowan Old Style",Georgia,serif;
+    display:flex; flex-direction:column; align-items:center; min-height:100%;
+  }
+  .wrap{width:100%; max-width:1120px; padding:18px; display:flex; flex-direction:column; flex:1; min-height:100vh}
+  .cinzel{font-family:"Cinzel",Georgia,serif}
+  /* logo image (auto-swaps in for the text title when logo.png exists) */
+  .logo-img-hero{display:block;width:min(460px,88%);height:auto;margin:0 auto 4px;
+    filter:drop-shadow(0 5px 20px rgba(216,169,58,.28))}
+  .logo-img-bar{height:40px;width:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+
+  /* coffee button */
+  .coffee{display:inline-flex;align-items:center;gap:7px;text-decoration:none;cursor:pointer;
+    font-family:"Cinzel",serif;font-size:13px;letter-spacing:.5px;color:#2a1c08;
+    background:linear-gradient(#f4cf6b,#d8a93a);border:1px solid #8a6a1e;border-radius:8px;
+    padding:8px 13px;box-shadow:0 2px 0 #7a5c18, 0 6px 16px rgba(216,169,58,.25);transition:.15s}
+  .coffee:hover{transform:translateY(-1px);box-shadow:0 3px 0 #7a5c18,0 10px 22px rgba(216,169,58,.35)}
+
+  /* ---------- setup ---------- */
+  #setup,#onboard{margin:auto;max-width:660px;text-align:center;background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:12px;padding:34px 32px;box-shadow:0 18px 50px var(--shadow);position:relative}
+  #onboard{display:none;max-width:560px}
+  #setup::before,#setup::after{content:"";position:absolute;width:26px;height:26px;border:2px solid var(--gold);opacity:.5}
+  #setup::before{top:10px;left:10px;border-right:0;border-bottom:0}
+  #setup::after{bottom:10px;right:10px;border-left:0;border-top:0}
+  h1{font-family:"Cinzel",serif;font-size:60px;letter-spacing:10px;margin:0 0 2px;color:var(--gold-bright);
+    text-shadow:0 2px 0 #000,0 0 30px rgba(216,169,58,.3);font-weight:900}
+  .tag{color:var(--ink-dim);font-style:italic;margin-bottom:22px;letter-spacing:.5px}
+  label{display:block;text-align:left;font-size:12px;color:var(--ink-dim);font-family:"Cinzel",serif;
+    text-transform:uppercase;letter-spacing:1.5px;margin:15px 0 6px}
+  input[type=text],input[type=password],select,textarea{width:100%;background:#0b0905;border:1px solid var(--line);
+    color:var(--ink);padding:11px 12px;border-radius:6px;font-family:inherit;font-size:15px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  textarea{resize:vertical;min-height:52px}
+  .row{display:flex;gap:12px}.row>div{flex:1}
+  .btns{display:flex;gap:12px;margin-top:22px}
+  button{flex:1;cursor:pointer;font-family:"Cinzel",serif;font-size:15px;letter-spacing:1px;padding:13px 16px;
+    border-radius:7px;border:1px solid var(--gold);background:linear-gradient(#3a2c10,#241a09);color:var(--gold-bright);transition:.15s}
+  button:hover{background:linear-gradient(#4d3a15,#312309);box-shadow:0 0 18px rgba(216,169,58,.25)}
+  button.ghost{border-color:var(--line);background:transparent;color:var(--ink-dim)}
+  button.ghost:hover{color:var(--ink);box-shadow:none}
+  .hint{font-size:12px;color:var(--ink-dim);margin-top:14px;line-height:1.6}.hint a{color:var(--gold)}
+  .howto{text-align:left;background:#100c06;border:1px solid var(--line);border-radius:9px;padding:14px 16px;margin:8px 0 18px}
+  .howto-title{font-family:"Cinzel",serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:9px}
+  .howto ol{margin:0 0 13px;padding-left:20px;color:var(--ink);font-size:14px;line-height:1.75}
+  .howto ol b{color:var(--gold-bright)}
+  .getkey{display:block;text-align:center;text-decoration:none;font-family:"Cinzel",serif;font-size:14px;letter-spacing:.5px;
+    color:#2a1c08;background:linear-gradient(#f4cf6b,#d8a93a);border:1px solid #8a6a1e;border-radius:8px;padding:11px;
+    box-shadow:0 2px 0 #7a5c18,0 6px 16px rgba(216,169,58,.22)}
+  .getkey:hover{filter:brightness(1.07)}
+  .resumeBtn{display:none;width:100%;margin:0 0 16px;cursor:pointer;font-family:"Cinzel",serif;font-size:15px;letter-spacing:.5px;
+    padding:13px;border-radius:8px;border:1px solid #4a7a3a;background:linear-gradient(#27451c,#162b10);color:#d4ecb6}
+  .resumeBtn:hover{background:linear-gradient(#33571f,#1c3713);box-shadow:0 0 16px rgba(120,180,90,.25)}
+  .setupfoot{margin-top:18px;display:flex;justify-content:center}
+  .warn{display:none;margin-top:14px;padding:10px 12px;border:1px solid var(--blood);border-radius:6px;
+    color:#e7a59c;font-size:13px;text-align:left;line-height:1.6}.warn code{color:var(--gold-bright)}
+
+  /* ---------- game ---------- */
+  #game{display:none;flex:1;flex-direction:column;min-height:0;width:100%}
+  .topbar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:12px}
+  .topbar .brand{font-family:"Cinzel",serif;color:var(--gold);letter-spacing:6px;font-size:22px;font-weight:700}
+  .topbar .right{display:flex;align-items:center;gap:12px}
+  .topbar .mini{color:var(--ink-dim);font-size:11px;letter-spacing:1px}
+  .stage{display:flex;gap:18px;flex:1;min-height:0}
+  #log{flex:1;overflow-y:auto;padding:6px 16px 6px 2px;line-height:1.66;font-size:17px;scroll-behavior:smooth}
+  #log p{margin:0 0 13px}
+  .you{color:var(--gold-bright)}.you::before{content:"\276F  ";color:var(--gold)}
+  .room-name{font-family:"Cinzel",serif;color:var(--gold-bright);font-weight:700;letter-spacing:1px;font-size:18px}
+  .sys{color:var(--ink-dim);font-style:italic;font-size:15px}
+  .dmg{color:#d2685c}.good{color:var(--green)}
+  .death{font-family:"Cinzel",serif;color:#d2685c;font-weight:700;letter-spacing:2px}
+  .boss{color:#e0843c;font-weight:700}
+  .loot-line{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 4px}
+  .loot-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:20px;padding:3px 11px 3px 6px;font-size:14px;background:#120e07}
+  .typing-cursor::after{content:"\2588";color:var(--gold);margin-left:1px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  /* rarity helpers */
+  .r-common{color:var(--r-common)}.r-rare{color:var(--r-rare)}.r-epic{color:var(--r-epic)}.r-legendary{color:var(--r-legendary)}
+  .b-common{border-color:var(--r-common)!important}.b-rare{border-color:var(--r-rare)!important}
+  .b-epic{border-color:var(--r-epic)!important}.b-legendary{border-color:var(--r-legendary)!important;box-shadow:0 0 9px rgba(244,166,35,.5)}
+
+  aside{width:300px;flex-shrink:0;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
+    border-radius:10px;padding:14px;font-size:14px;align-self:flex-start;position:sticky;top:0;max-height:calc(100vh - 90px);overflow-y:auto}
+  .vitals .stat{display:flex;justify-content:space-between;margin:3px 0}
+  .vitals .v,.gearsum b,#detail .dt-stats b,.cell .qty{color:var(--gold-bright);font-family:"Cinzel",serif;font-variant-numeric:lining-nums}
+  .bar{height:9px;background:#0b0905;border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-top:3px}
+  .bar>i{display:block;height:100%;transition:width .3s}
+  .bar.hp>i{background:linear-gradient(90deg,#7a2c25,#c4564a)}
+  .bar.mp>i{background:linear-gradient(90deg,#2c4a7a,#4a86c4)}
+  .combatgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:8px}
+  h3{margin:0 0 8px;font-size:11px;letter-spacing:2px;color:var(--ink-dim);font-family:"Cinzel",serif;
+    text-transform:uppercase;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .ways{margin-top:12px}.exits{color:var(--green);letter-spacing:1px}.loc{color:var(--gold-bright)}
+
+  .tabbar{display:flex;gap:6px;margin:14px 0 10px}
+  .tabbar button{flex:1;font-size:11px;letter-spacing:1px;padding:7px 4px;border-color:var(--line);
+    background:#120e07;color:var(--ink-dim)}
+  .tabbar button.active{color:var(--gold-bright);border-color:var(--gold);background:#251a09}
+  .tabpane{display:none}.tabpane.active{display:block}
+
+  /* satchel */
+  .baggrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .cell{aspect-ratio:1;border:2px solid var(--line);border-radius:6px;background:#0b0905;display:flex;
+    align-items:center;justify-content:center;cursor:pointer;position:relative;transition:.12s}
+  .cell:hover{background:#1a1308}
+  .cell.sel{outline:2px solid var(--gold)}
+  .cell .qty{position:absolute;right:2px;bottom:1px;font-size:10px;color:var(--gold-bright)}
+  .cell.empty{cursor:default;opacity:.5}
+  .bagempty{color:var(--ink-dim);font-style:italic;text-align:center;padding:14px 0}
+
+  /* equipment OSRS layout */
+  .eqwrap{display:flex;flex-direction:column;align-items:center}
+  .eqgrid{display:grid;grid-template-columns:repeat(3,50px);grid-auto-rows:50px;gap:7px;justify-content:center;margin:4px 0 6px}
+  .slot{border:2px solid var(--line);border-radius:7px;background:radial-gradient(circle at 50% 30%,#191207,#0b0905);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+  .slot.filled{cursor:pointer}.slot.spacer{border:0;background:transparent;cursor:default}
+  .slot.empty svg{opacity:.16}
+  .slot .lbl{position:absolute;bottom:-3px;left:0;right:0;text-align:center;font-size:8px;color:var(--ink-dim);letter-spacing:.3px}
+  .gearsum{display:flex;justify-content:center;gap:16px;margin-top:6px;font-size:13px;color:var(--ink-dim)}
+  .gearsum b{color:var(--gold-bright)}
+
+  /* detail */
+  #detail{margin-top:12px;border:1px solid var(--line);border-radius:8px;padding:11px;background:#100c06;min-height:54px}
+  #detail .dt-name{font-family:"Cinzel",serif;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+  #detail .dt-meta{font-size:12px;color:var(--ink-dim);margin:2px 0 7px}
+  #detail .dt-stats{font-size:13px;line-height:1.55}
+  #detail .dt-actions{display:flex;gap:7px;margin-top:9px}
+  #detail .dt-actions button{padding:7px 8px;font-size:11px}
+  .dt-empty{color:var(--ink-dim);font-style:italic;font-size:13px}
+
+  .inputline{display:flex;gap:10px;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+  .inputline span{color:var(--gold);font-size:18px;align-self:center}
+  #cmd{flex:1;background:transparent;border:none;color:var(--gold-bright);font-family:"SFMono-Regular",Menlo,Consolas,monospace;font-size:16px}
+  #cmd:focus{outline:none}
+  .quickbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .quickbar button{flex:none;font-size:12px;letter-spacing:.5px;padding:5px 11px;border-color:var(--line);background:#120e07;color:var(--ink-dim)}
+  .quickbar button:hover{color:var(--gold-bright);border-color:var(--gold);box-shadow:none}
+  @media(max-width:820px){aside{display:none}h1{font-size:42px;letter-spacing:6px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ FIRST-RUN ONBOARDING ("tunnel") ============ -->
+  <section id="onboard">
+    <h1 class="logo-text">TORKED</h1>
+    <div class="tag">Welcome, adventurer. Grab a free key and your realm awaits.</div>
+    <button class="resumeBtn">⮌ Continue your quest</button>
+
+    <div class="howto">
+      <div class="howto-title">Get your free key — 30 seconds, no card</div>
+      <ol>
+        <li>Tap the gold button below to open the <b>Groq</b> console, and sign in (Google or GitHub works).</li>
+        <li>Click <b>Create API Key</b>, give it any name, then <b>Submit</b>.</li>
+        <li><b>Copy</b> the key it shows you and paste it in the box below.</li>
+      </ol>
+      <a class="getkey" href="https://console.groq.com/keys" target="_blank" rel="noopener">🔑 Get my free Groq key →</a>
+    </div>
+
+    <label for="obKey">Paste your Groq key here</label>
+    <input id="obKey" type="password" placeholder="gsk_..." autocomplete="off" />
+    <div class="btns"><button id="obBegin">Begin your quest</button></div>
+    <div class="hint" style="margin-top:14px">
+      <a id="obDemo" style="cursor:pointer;color:var(--gold)">Try the offline demo first</a>
+      &nbsp;·&nbsp;
+      <a id="obAdv" style="cursor:pointer;color:var(--ink-dim)">Use a different engine</a>
+    </div>
+    <div class="setupfoot"><a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a></div>
+  </section>
+
+  <!-- ============ SETUP (advanced) ============ -->
+  <section id="setup">
+    <h1 class="logo-text">TORKED</h1>
+    <div class="tag">A medieval text realm that is never the same realm twice.</div>
+    <button class="resumeBtn">⮌ Continue your quest</button>
+
+    <label for="provider">Engine</label>
+    <select id="provider">
+      <option value="groq" selected>Groq — FREE cloud key, very fast (recommended)</option>
+      <option value="ollama">Ollama — FREE, local &amp; unlimited (no key)</option>
+      <option value="gemini">Google Gemini — FREE cloud key, smart</option>
+      <option value="hf">Hugging Face — uses your Pro credits</option>
+    </select>
+
+    <div id="keyWrap">
+      <label for="key"><span id="keyLabel">API key</span> <span style="text-transform:none">(stays on your machine via the local server)</span></label>
+      <input id="key" type="password" placeholder="key" autocomplete="off" />
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="model">Game Master model</label>
+        <select id="model"></select>
+      </div>
+      <div>
+        <label for="diff">Peril</label>
+        <select id="diff">
+          <option value="gentle">Gentle</option>
+          <option value="balanced" selected>Balanced</option>
+          <option value="brutal">Brutal &amp; unforgiving</option>
+        </select>
+      </div>
+    </div>
+
+    <label for="custom">Custom model id <span style="text-transform:none">(optional — overrides the menu)</span></label>
+    <input id="custom" type="text" placeholder="exact model id for the chosen engine" autocomplete="off" />
+
+    <label for="seed">Seed of the realm <span style="text-transform:none">(optional — a theme, a mood, a legend)</span></label>
+    <textarea id="seed" placeholder="e.g. a drowned monastery beneath an ash-choked sky, ruled by a forgotten saint"></textarea>
+
+    <div class="btns">
+      <button id="startBtn">Enter the Realm</button>
+      <button id="demoBtn" class="ghost">Play offline demo</button>
+    </div>
+
+    <div class="warn" id="fileWarn">
+      You opened this file directly, so the live engine can't run (no local server). Start it from a terminal:
+      <br><br><code>cd "your project folder"</code><br><code>python3 server.py</code>
+      <br><br>…then open <code>http://localhost:8000</code>. The offline demo works right here.
+    </div>
+
+    <div class="hint" id="providerHint"></div>
+    <div class="setupfoot">
+      <a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a>
+    </div>
+  </section>
+
+  <!-- ============ GAME ============ -->
+  <section id="game">
+    <div class="topbar">
+      <div class="brand logo-text">TORKED</div>
+      <div class="right">
+        <span class="mini" id="modeTag"></span>
+        <a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a>
+      </div>
+    </div>
+    <div class="stage">
+      <div id="log"></div>
+      <aside>
+        <div class="vitals">
+          <h3>Adventurer</h3>
+          <div class="stat"><span>Vitality</span><span class="v" id="hpv">20 / 20</span></div>
+          <div class="bar hp"><i id="hpbar" style="width:100%"></i></div>
+          <div class="stat" style="margin-top:7px"><span>Resolve</span><span class="v" id="mpv">10 / 10</span></div>
+          <div class="bar mp"><i id="mpbar" style="width:100%"></i></div>
+          <div class="combatgrid">
+            <div class="stat"><span>Attack</span><span class="v" id="atkv">0</span></div>
+            <div class="stat"><span>Defence</span><span class="v" id="defv">0</span></div>
+            <div class="stat"><span>Gold</span><span class="v" id="goldv">0</span></div>
+            <div class="stat"><span>Score</span><span class="v" id="scorev">0</span></div>
+            <div class="stat"><span>Depth</span><span class="v" id="depthv">0</span></div>
+            <div class="stat"><span>Buff</span><span class="v" id="buffv">—</span></div>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <button data-tab="bag" class="active">Satchel</button>
+          <button data-tab="worn">Equipment</button>
+        </div>
+
+        <div class="tabpane active" id="paneBag">
+          <div class="baggrid" id="bagGrid"></div>
+          <div class="bagempty" id="bagEmpty">empty-handed</div>
+        </div>
+
+        <div class="tabpane" id="paneWorn">
+          <div class="eqwrap">
+            <div class="eqgrid" id="eqGrid"></div>
+            <div class="gearsum">
+              <span>Atk <b id="sumAtk">0</b></span>
+              <span>Def <b id="sumDef">0</b></span>
+              <span>+HP <b id="sumHp">0</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div id="detail"><div class="dt-empty">Select an item to inspect it.</div></div>
+
+        <div class="ways">
+          <h3>Ways out</h3>
+          <div class="exits" id="exitsv">—</div>
+          <h3 style="margin-top:10px">Location</h3>
+          <div class="loc" id="locv">the threshold</div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="inputline">
+      <span>&gt;</span>
+      <input id="cmd" type="text" autocomplete="off" placeholder="look around, go north, open the chest, attack the boss, drink a potion..." />
+    </div>
+    <div class="quickbar">
+      <button data-c="look around">look</button>
+      <button data-c="examine my surroundings carefully">examine</button>
+      <button data-c="open the chest">open chest</button>
+      <button data-c="rest a moment">rest</button>
+      <button data-c="wait and listen">wait</button>
+      <button id="newGame" data-c="__new">↻ new realm</button>
+    </div>
+  </section>
+</div>
+
+<script>
+//=====================================================================
+//  TORKED — AI-driven, ever-changing medieval RPG.
+//  Engine: any OpenAI-compatible provider via the local proxy (server.py).
+//  The browser holds the canonical game state (rooms are AI-invented,
+//  but loot rarity, equipment maths and scoring are enforced here).
+//=====================================================================
+const $ = s => document.querySelector(s);
+const esc = s => (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+const ri  = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
+
+// ---------- rarity ----------
+const RARITY = {
+  common:   {label:'Common',    cls:'common',    mult:1.00},
+  rare:     {label:'Rare',      cls:'rare',      mult:1.70},
+  epic:     {label:'Epic',      cls:'epic',      mult:2.60},
+  legendary:{label:'Legendary', cls:'legendary', mult:4.20},
+};
+// drop weights (legendary deliberately scarce)
+const WEIGHTS = {
+  normal: {common:62, rare:26, epic:9,  legendary:3},   // 3% legendary
+  chest:  {common:48, rare:32, epic:15, legendary:5},   // 5%
+  boss:   {common:20, rare:38, epic:30, legendary:12},  // 12% — earned
+};
+function rollRarity(bias='normal'){
+  const w = WEIGHTS[bias] || WEIGHTS.normal;
+  const total = Object.values(w).reduce((a,b)=>a+b,0);
+  let r = Math.random()*total;
+  for(const k of ['common','rare','epic','legendary']){ if((r-=w[k])<0) return k; }
+  return 'common';
+}
+
+// ---------- icons (inline SVG silhouettes, tinted by rarity) ----------
+const ICON = {
+  weapon:'<path d="M11 2l3 3-6 6 2 2 6-6 0 0M6 14l4 4-2 2-2-1-1-2z"/><path d="M12.5 3.5l4 4-7 7-4-4z"/>',
+  head:'<path d="M5 13a7 7 0 0 1 14 0v3h-3v-2h-2v2h-4v-2H8v2H5z"/>',
+  body:'<path d="M6 4h12l-1 5q-5 4-10 0zM7 11q5 3 10 0l1 9H6z"/>',
+  legs:'<path d="M7 3h10v17h-3l-2-10-2 10H7z"/>',
+  shield:'<path d="M12 2l8 3v6q0 7-8 11-8-4-8-11V5z"/>',
+  hands:'<path d="M8 8h6a3 3 0 0 1 3 3v6H8z"/><rect x="5" y="9" width="3" height="6" rx="1"/>',
+  feet:'<path d="M8 3h4v9h6v6H8z"/>',
+  ring:'<circle cx="12" cy="14" r="5"/><circle cx="12" cy="6" r="2.4"/>',
+  amulet:'<path d="M6 4q6 7 12 0" fill="none" stroke-width="2" stroke="currentColor"/><circle cx="12" cy="14" r="3.4"/>',
+  potion:'<path d="M10 3h4v3l3 7a5 5 0 0 1-10 0l3-7z"/><rect x="9" y="2" width="6" height="2" rx="1"/>',
+  coin:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5" fill="#0b0905"/>',
+  chest:'<path d="M4 9q8-6 16 0v9H4z"/><rect x="3" y="9" width="18" height="3"/><rect x="11" y="11" width="2" height="4" fill="#0b0905"/>',
+  misc:'<circle cx="12" cy="12" r="7"/>',
+};
+const COLOR = {common:'#cdc7b6',rare:'#5aa0e0',epic:'#b277e6',legendary:'#f4a623'};
+function svg(name, rarity, size=26){
+  const c = COLOR[rarity]||'#cdc7b6';
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${c}" stroke="none">${ICON[name]||ICON.misc}</svg>`;
+}
+
+// ---------- item generation ----------
+const ADJ = {
+  common:['Worn','Rusted','Plain','Chipped','Crude'],
+  rare:['Steel','Tempered','Burnished','Honed','Knightly'],
+  epic:['Runed','Enchanted','Ebon','Glowing','Warforged'],
+  legendary:['Dragonbone','Godforged','Eternal','Mythril','Ancient'],
+};
+const BASE = {
+  weapon:['Sword','Axe','Mace','Glaive','Dagger'],
+  head:['Helm','Coif','Greathelm','Hood'],
+  body:['Cuirass','Breastplate','Hauberk','Tunic'],
+  legs:['Greaves','Legguards','Chausses'],
+  shield:['Shield','Kiteshield','Bulwark'],
+  hands:['Gauntlets','Bracers','Gloves'],
+  feet:['Sabatons','War Boots','Treads'],
+  ring:['Ring','Band','Signet'],
+  amulet:['Amulet','Pendant','Talisman'],
+};
+const SLOTS = ['weapon','head','body','legs','shield','hands','feet','ring','amulet'];
+let _idc=0; const uid=()=>'it'+(++_idc);
+
+function makeGear(slot, rarity, depth){
+  const m = RARITY[rarity].mult, d = depth||0;
+  const it = {id:uid(), slot, type:'gear', icon:slot, rarity,
+    name:`${rnd(ADJ[rarity])} ${rnd(BASE[slot])}`, atk:0, def:0, hp:0,
+    value:Math.round(12*m*(1+d*0.18))};
+  if(slot==='weapon') it.atk = Math.round((3+d*0.6)*m);
+  else if(slot==='ring') it.atk = Math.round((1+d*0.3)*m);
+  else if(slot==='amulet'){ it.hp = Math.round((4+d)*m); }
+  else { it.def = Math.round((2+d*0.4)*m); it.hp = Math.round((3+d*0.8)*m); }
+  return it;
+}
+function makePotion(rarity, depth){
+  const m = RARITY[rarity].mult, d=depth||0, kind = Math.random()<0.6?'heal':'dmg';
+  if(kind==='heal') return {id:uid(),type:'potion',use:'heal',icon:'potion',rarity,
+    name:`${rarity==='common'?'Vial':rarity==='rare'?'Flask':rarity==='epic'?'Draught':'Elixir'} of Healing`,
+    amount:Math.round((10+d*1.5)*m), value:Math.round(8*m)};
+  return {id:uid(),type:'potion',use:'dmg',icon:'potion',rarity,
+    name:`${rarity==='common'?'Flask':rarity==='rare'?'Brew':rarity==='epic'?'Tonic':'Philtre'} of Fury`,
+    boost:Math.round((2+d*0.4)*m), turns:3, value:Math.round(9*m)};
+}
+function makeCoins(depth){ return {id:uid(),type:'coins',icon:'coin',rarity:'common',
+  name:'Coins', amount:ri(5+depth*2, 14+depth*5)}; }
+
+// roll a batch of loot for a chest / boss
+function genLoot(bias, depth, count){
+  const out=[]; count = count || ri(1, bias==='boss'?3:2);
+  for(let i=0;i<count;i++){
+    const roll=Math.random();
+    if(roll<0.30) out.push(makeCoins(depth));
+    else if(roll<0.52) out.push(makePotion(rollRarity(bias), depth));
+    else out.push(makeGear(rnd(SLOTS), rollRarity(bias), depth));
+  }
+  // a boss always yields at least one good piece of gear
+  if(bias==='boss') out.push(makeGear(rnd(SLOTS), rollRarity('boss'), depth));
+  return out;
+}
+
+// ---------- rare world events (scene-aware, very rare) ----------
+const EVENTS=[
+  {name:'an Earthquake', k:['any'], text:'Without warning the earth heaves; cracks race across the floor and a hail of stone crashes down.', hp:[3,8]},
+  {name:'a Cave-In', k:['crypt','vault','stair','hollow','cistern','cave','mine','tunnel','nave','armoury'], text:'A deep grinding roar — and part of the ceiling gives way right on top of you!', hp:[4,9]},
+  {name:'a Sudden Storm', k:['nave','rookery','cloister','gallery','sky','forest','cliff','field','road','bridge','tower','courtyard'], text:'Black clouds boil in and lightning splits the air, thunder shaking the very stones.', hp:[2,6]},
+  {name:'a Tornado', k:['field','road','forest','gallery','rookery','courtyard','plain'], text:'A howling vortex tears through, hurling debris and dragging you off your feet.', hp:[4,10]},
+  {name:'a Flash Flood', k:['cistern','sunken','drowned','well','vault','crypt','water','marsh','sewer'], text:'Black water surges up from somewhere unseen, rising around your knees in seconds.', hp:[3,7]},
+  {name:'a Cursed Wind', k:['any'], text:'A wailing, ice-cold wind pours through and saps the spirit from your bones.', mp:[3,6]},
+  {name:'a DRAGON Attack', k:['any'], text:'A vast shadow blots out the light — a dragon descends in a roaring torrent of flame!', hp:[6,13], dragon:true},
+  {name:'a Fortunate Tremor', k:['any'], text:'A tremor splits the wall wide, and something glitters in the new-made crack...', chest:true},
+];
+const EVENT_CHANCE=0.045;          // very rare — ~1 in 22 turns
+function pickEvent(loc){
+  if(Math.random()>=EVENT_CHANCE) return null;
+  const L=(loc||'').toLowerCase();
+  const cand=EVENTS.filter(e=>e.k.some(k=>k==='any'||L.includes(k)));
+  return cand.length?rnd(cand):null;
+}
+async function fireEventDemo(ev){
+  line(`<span class="boss">⚡ ${ev.name.replace(/^an? /i,'').replace(/^the /i,'')} strikes!</span>`,'boss');
+  await typeLine(ev.text,'dmg');
+  if(ev.hp){ const d=ri(ev.hp[0],ev.hp[1]); G.hp=Math.max(0,G.hp-d); line(`You take <span class="dmg">${d}</span> damage.`,'dmg'); }
+  if(ev.mp){ const d=ri(ev.mp[0],ev.mp[1]); G.mp=Math.max(0,G.mp-d); line(`You lose <span class="dmg">${d}</span> resolve.`,'dmg'); }
+  if(ev.chest){ grantLoot(genLoot('chest',G.depth)); }
+  if(ev.dragon){ G.foe={name:'the Dragon',hp:26+G.depth*5,atk:7+G.depth,boss:true}; line('The dragon coils to strike — fight or flee!','boss'); }
+  hud();
+  if(G.hp<=0) endGame('The world itself has slain you. The realm claims another nameless adventurer.');
+}
+
+// ---------- canonical state ----------
+const G = {
+  cfg:{provider:'groq',base_url:'',token:'',model:'',difficulty:'balanced',seed:'',demo:false},
+  baseMaxHp:20, hp:20, maxHp:20, mp:10, maxMp:10,
+  gold:0, score:0, depth:0,
+  atk:0, def:0, equipHp:0, dmgBuff:0, buffTurns:0,
+  bag:[], worn:{}, sel:null,
+  location:'the threshold', exits:[],
+  history:[], turn:0, over:false, busy:false,
+  foe:null, chestHere:false
+};
+
+// ---------- provider presets ----------
+const PROVIDERS = {
+  groq:{base:'https://api.groq.com/openai/v1',needsKey:true,keyLabel:'Groq API key',keyPh:'gsk_...',
+    models:[['openai/gpt-oss-120b','GPT-OSS 120B — fast & sharp (recommended)'],['llama-3.3-70b-versatile','Llama 3.3 70B Versatile'],['llama-3.1-8b-instant','Llama 3.1 8B Instant — fastest'],['qwen/qwen3-32b','Qwen3 32B']],
+    hint:'Free, no credit card. Key at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.'},
+  ollama:{base:'http://localhost:11434/v1',needsKey:false,keyLabel:'(no key needed)',keyPh:'',
+    models:[['llama3.2','Llama 3.2 3B — light & quick'],['llama3.1:8b','Llama 3.1 8B'],['qwen2.5:7b','Qwen2.5 7B'],['mistral','Mistral 7B']],
+    hint:'100% free & local. Install <a href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a>, run e.g. <code>ollama pull llama3.2</code>, keep it running.'},
+  gemini:{base:'https://generativelanguage.googleapis.com/v1beta/openai',needsKey:true,keyLabel:'Google AI Studio key',keyPh:'AIza...',
+    models:[['gemini-2.5-flash','Gemini 2.5 Flash — smart & free'],['gemini-2.5-flash-lite','Gemini 2.5 Flash-Lite — faster'],['gemini-2.5-pro','Gemini 2.5 Pro — best']],
+    hint:'Free, 1,500 requests/day. Key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.'},
+  hf:{base:'https://router.huggingface.co/v1',needsKey:true,keyLabel:'Hugging Face token',keyPh:'hf_...',
+    models:[['openai/gpt-oss-120b','GPT-OSS 120B'],['meta-llama/Llama-3.3-70B-Instruct','Llama 3.3 70B Instruct'],['Qwen/Qwen2.5-72B-Instruct','Qwen2.5 72B Instruct'],['deepseek-ai/DeepSeek-V3','DeepSeek V3']],
+    hint:'Uses your HF Pro credits. Token at <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">huggingface.co/settings/tokens</a>.'},
+};
+function applyProvider(name){
+  const p=PROVIDERS[name];
+  $('#model').innerHTML=p.models.map((m,i)=>`<option value="${m[0]}"${i?'':' selected'}>${m[1]}</option>`).join('');
+  $('#keyLabel').textContent=p.keyLabel; $('#key').placeholder=p.keyPh;
+  $('#keyWrap').style.display=p.needsKey?'block':'none'; $('#providerHint').innerHTML=p.hint;
+}
+$('#provider').addEventListener('change',e=>{ applyProvider(e.target.value); });
+applyProvider('groq');
+
+// remember engine + key across sessions (stored locally in this browser only)
+const LS_KEY='torked_cfg_v1';
+function saveCfg(){ try{ localStorage.setItem(LS_KEY, JSON.stringify({
+  provider:$('#provider').value, model:$('#model').value, custom:$('#custom').value,
+  key:$('#key').value, diff:$('#diff').value, seed:$('#seed').value })); }catch(e){} }
+function loadCfg(){ try{ const c=JSON.parse(localStorage.getItem(LS_KEY)||'null'); if(!c) return false;
+  if(c.provider){ $('#provider').value=c.provider; applyProvider(c.provider); }
+  if(c.model) $('#model').value=c.model;
+  if(c.custom!=null) $('#custom').value=c.custom;
+  if(c.key) $('#key').value=c.key;
+  if(c.diff) $('#diff').value=c.diff;
+  if(c.seed) $('#seed').value=c.seed;
+  return !!c.key; }catch(e){ return false; } }
+if(loadCfg() && (PROVIDERS[$('#provider').value]||{}).needsKey){
+  $('#providerHint').insertAdjacentHTML('afterbegin','<div style="color:var(--green);margin-bottom:7px">✓ Your key is remembered — just press <b>Enter the Realm</b>.</div>');
+}
+
+// ---------- autosave / resume ----------
+const SAVE_KEY='torked_save_v1';
+const SAVE_FIELDS=['baseMaxHp','hp','maxHp','mp','maxMp','gold','score','depth','atk','def','equipHp',
+  'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','cfg'];
+function saveGame(){
+  if(G.over) return;
+  if(G.turn===0 && (G.history||[]).length===0 && (G.bag||[]).length===0 && G.score===0) return; // nothing meaningful yet
+  try{
+    const snap={}; SAVE_FIELDS.forEach(k=>snap[k]=G[k]);
+    let log=$('#log').innerHTML; if(log.length>80000) log=log.slice(log.length-80000);
+    localStorage.setItem(SAVE_KEY, JSON.stringify({t:Date.now(), demo:!!G.cfg.demo,
+      location:G.location, score:G.score, depth:G.depth, G:snap, log}));
+  }catch(e){}
+}
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+function loadSave(){ try{ return JSON.parse(localStorage.getItem(SAVE_KEY)||'null'); }catch(e){ return null; } }
+async function resumeGame(){
+  const s=loadSave(); if(!s||!s.G) return;
+  Object.assign(G, s.G); G.busy=false; G.sel=null; G._resumed=true; G.over=false;
+  $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#game').style.display='flex';
+  $('#log').innerHTML=s.log||''; $('#cmd').disabled=false;
+  recompute(); hud();
+  if(G.cfg.demo){ $('#modeTag').textContent='OFFLINE DEMO · procedural'; }
+  else {
+    G.useProxy=false;
+    try{ const r=await fetch('/api/config',{method:'POST',headers:{'content-type':'application/json'},
+      body:JSON.stringify({base_url:G.cfg.base_url,token:G.cfg.token})}); if(r.ok)G.useProxy=true; }catch(e){}
+    $('#modeTag').textContent=`LIVE · ${(G.cfg.provider||'?').toUpperCase()} · ${G.cfg.model||''}${G.useProxy?'':' · direct'}`;
+  }
+  line('<span class="sys">— your tale continues where you left it —</span>');
+  $('#log').scrollTop=$('#log').scrollHeight; $('#cmd').focus();
+}
+(function initResume(){
+  const s=loadSave(); if(!s) return;
+  document.querySelectorAll('.resumeBtn').forEach(b=>{
+    b.style.display='block';
+    b.textContent=`⮌ Continue your quest — ${s.location||'in progress'} · score ${s.score||0}`;
+    b.addEventListener('click',resumeGame);
+  });
+})();
+
+const isFile = location.protocol==='file:';
+if(isFile) $('#fileWarn').style.display='block';
+
+// ---------- setup wiring ----------
+function startLive(){
+  if(isFile){ $('#fileWarn').style.display='block'; $('#fileWarn').scrollIntoView({behavior:'smooth'}); return false; }
+  const pname=$('#provider').value,p=PROVIDERS[pname],token=$('#key').value.trim();
+  if(p.needsKey&&!token){ $('#key').focus(); $('#key').placeholder='a key is required (or play the demo)'; return false; }
+  G.cfg={provider:pname,base_url:p.base,token,model:$('#custom').value.trim()||$('#model').value,
+    difficulty:$('#diff').value,seed:$('#seed').value.trim(),demo:false};
+  saveCfg();   // remember for next time
+  beginGame(); return true;
+}
+$('#startBtn').addEventListener('click',startLive);
+
+// ---- first-run onboarding ("tunnel"): grab a free Groq key and go ----
+$('#obBegin').addEventListener('click',()=>{
+  $('#provider').value='groq'; applyProvider('groq');
+  $('#key').value=$('#obKey').value.trim();
+  if(!startLive()){ $('#obKey').focus(); $('#obKey').placeholder='paste your gsk_ key here to begin'; }
+});
+$('#obKey').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#obBegin').click(); });
+$('#obDemo').addEventListener('click',()=>{ $('#onboard').style.display='none'; $('#demoBtn').click(); });
+$('#obAdv').addEventListener('click',()=>{ $('#onboard').style.display='none'; $('#setup').style.display='block'; });
+
+// show the simple onboarding only on a fresh first visit (no remembered key, not file://)
+if(!isFile && !$('#key').value.trim()){ $('#setup').style.display='none'; $('#onboard').style.display='block'; }
+$('#demoBtn').addEventListener('click',()=>{
+  G.cfg={provider:'',base_url:'',token:'',model:'',difficulty:$('#diff').value,seed:$('#seed').value.trim(),demo:true};
+  beginGame();
+});
+$('#cmd').addEventListener('keydown',e=>{ if(e.key==='Enter') submitCommand(); });
+document.querySelectorAll('.quickbar button').forEach(b=>b.addEventListener('click',()=>{
+  const c=b.getAttribute('data-c');
+  if(c==='__new'){ if(confirm('Abandon this realm and forge a new one?')){ clearSave(); location.reload(); } return; }
+  $('#cmd').value=c; submitCommand();
+}));
+document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabbar button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const t=b.getAttribute('data-tab');
+  $('#paneBag').classList.toggle('active',t==='bag');
+  $('#paneWorn').classList.toggle('active',t==='worn');
+}));
+let cmdHist=[],histPos=-1;
+$('#cmd').addEventListener('keydown',e=>{
+  if(e.key==='ArrowUp'&&cmdHist.length){histPos=Math.max(0,histPos-1);$('#cmd').value=cmdHist[histPos];e.preventDefault();}
+  if(e.key==='ArrowDown'&&histPos>=0){histPos=Math.min(cmdHist.length,histPos+1);$('#cmd').value=cmdHist[histPos]||'';}
+});
+
+// ---------- typewriter print ----------
+let activeTyper=null;
+$('#log').addEventListener('click',()=>{ if(activeTyper) activeTyper(); });
+function line(html,cls){ const p=document.createElement('p'); if(cls)p.className=cls; p.innerHTML=html; $('#log').appendChild(p); $('#log').scrollTop=$('#log').scrollHeight; return p; }
+function typeLine(text,cls){
+  return new Promise(res=>{
+    const p=document.createElement('p'); if(cls)p.className=cls; p.classList.add('typing-cursor');
+    $('#log').appendChild(p);
+    let i=0,done=false; const speed=14;
+    const finish=()=>{ if(done)return; done=true; clearTimeout(t); p.textContent=text; p.classList.remove('typing-cursor'); activeTyper=null; res(); };
+    activeTyper=finish;
+    let t; const tick=()=>{ p.textContent=text.slice(0,i++); $('#log').scrollTop=$('#log').scrollHeight;
+      if(i<=text.length) t=setTimeout(tick,speed); else finish(); };
+    tick();
+  });
+}
+
+// ---------- HUD / panels ----------
+function recompute(){
+  let atk=0,def=0,hp=0;
+  for(const s in G.worn){ const it=G.worn[s]; if(!it)continue; atk+=it.atk||0; def+=it.def||0; hp+=it.hp||0; }
+  const delta = hp - G.equipHp; G.equipHp = hp;
+  G.atk=atk; G.def=def; G.maxHp=G.baseMaxHp+hp;
+  if(delta>0) G.hp=Math.min(G.maxHp,G.hp+delta);          // armour adds health
+  G.hp=Math.min(G.hp,G.maxHp);
+}
+function hud(){
+  $('#hpv').textContent=`${G.hp} / ${G.maxHp}`; $('#mpv').textContent=`${G.mp} / ${G.maxMp}`;
+  $('#hpbar').style.width=Math.max(0,G.hp/G.maxHp*100)+'%'; $('#mpbar').style.width=Math.max(0,G.mp/G.maxMp*100)+'%';
+  $('#atkv').textContent=G.atk; $('#defv').textContent=G.def;
+  $('#goldv').textContent=G.gold; $('#scorev').textContent=G.score; $('#depthv').textContent=G.depth;
+  $('#buffv').textContent=G.buffTurns>0?`+${G.dmgBuff} (${G.buffTurns})`:'—';
+  $('#exitsv').textContent=G.exits.length?G.exits.join(' · '):'—'; $('#locv').textContent=G.location;
+  renderBag(); renderWorn();
+  saveGame();   // autosave after every state change
+}
+function renderBag(){
+  const grid=$('#bagGrid');
+  $('#bagEmpty').style.display=G.bag.length?'none':'block';
+  grid.innerHTML=G.bag.map(it=>{
+    const sel=G.sel&&G.sel.id===it.id?' sel':'';
+    const qty=it.type==='coins'?`<span class="qty">${it.amount}</span>`:'';
+    return `<div class="cell b-${it.rarity}${sel}" data-id="${it.id}" title="${esc(it.name)}">${svg(it.icon,it.rarity,24)}${qty}</div>`;
+  }).join('');
+  grid.querySelectorAll('.cell').forEach(c=>c.addEventListener('click',()=>select(c.getAttribute('data-id'),'bag')));
+}
+const EQ_LAYOUT=[null,'head',null,'amulet',null,null,'weapon','body','shield',null,'legs',null,'hands','feet','ring'];
+const SLOT_LBL={head:'Head',amulet:'Neck',weapon:'Weapon',body:'Body',shield:'Shield',legs:'Legs',hands:'Hands',feet:'Feet',ring:'Ring'};
+function renderWorn(){
+  $('#eqGrid').innerHTML=EQ_LAYOUT.map(slot=>{
+    if(!slot) return `<div class="slot spacer"></div>`;
+    const it=G.worn[slot];
+    if(it){ const sel=G.sel&&G.sel.id===it.id?' sel':'';
+      return `<div class="slot filled b-${it.rarity}${sel}" data-id="${it.id}" title="${esc(it.name)}">${svg(it.icon,it.rarity,26)}<span class="lbl">${SLOT_LBL[slot]}</span></div>`; }
+    return `<div class="slot empty" title="${SLOT_LBL[slot]}">${svg(slot,'common',26)}<span class="lbl">${SLOT_LBL[slot]}</span></div>`;
+  }).join('');
+  $('#eqGrid').querySelectorAll('.slot.filled').forEach(c=>c.addEventListener('click',()=>select(c.getAttribute('data-id'),'worn')));
+  $('#sumAtk').textContent=G.atk; $('#sumDef').textContent=G.def; $('#sumHp').textContent=G.equipHp;
+}
+function findItem(id){ return G.bag.find(x=>x.id===id) || Object.values(G.worn).find(x=>x&&x.id===id); }
+function select(id,src){ G.sel=findItem(id)||null; renderDetail(src); renderBag(); renderWorn(); }
+function renderDetail(src){
+  const it=G.sel, d=$('#detail');
+  if(!it){ d.innerHTML='<div class="dt-empty">Select an item to inspect it.</div>'; return; }
+  const stats=[];
+  if(it.atk) stats.push(`Attack <b>+${it.atk}</b>`);
+  if(it.def) stats.push(`Defence <b>+${it.def}</b>`);
+  if(it.hp) stats.push(`Vitality <b>+${it.hp}</b>`);
+  if(it.use==='heal') stats.push(`Heals <b>${it.amount}</b> vitality`);
+  if(it.use==='dmg') stats.push(`Damage <b>+${it.boost}</b> for ${it.turns} turns`);
+  if(it.type==='coins') stats.push(`Worth <b>${it.amount}</b> gold`);
+  if(it.value) stats.push(`Value <b>${it.value}</b>g`);
+  const worn = it.slot && G.worn[it.slot] && G.worn[it.slot].id===it.id;
+  let actions='';
+  if(it.type==='coins') actions=`<button data-act="collect">Collect</button>`;
+  else if(it.type==='potion') actions=`<button data-act="use">Drink</button><button class="ghost" data-act="drop">Drop</button>`;
+  else if(it.slot) actions = worn?`<button data-act="unequip">Unequip</button>`:`<button data-act="equip">Equip</button><button class="ghost" data-act="drop">Drop</button>`;
+  d.innerHTML=`<div class="dt-name r-${it.rarity}">${svg(it.icon,it.rarity,22)} ${esc(it.name)}</div>
+    <div class="dt-meta"><span class="r-${it.rarity}">${RARITY[it.rarity].label}</span>${it.slot?` · ${SLOT_LBL[it.slot]}`:it.type==='potion'?' · Potion':''}</div>
+    <div class="dt-stats">${stats.join('<br>')||'—'}</div>
+    <div class="dt-actions">${actions}</div>`;
+  d.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>itemAction(b.getAttribute('data-act'))));
+}
+function itemAction(act){
+  const it=G.sel; if(!it) return;
+  if(act==='equip'){ equip(it); }
+  else if(act==='unequip'){ unequip(it.slot); }
+  else if(act==='use'){ usePotion(it); }
+  else if(act==='collect'){ G.gold+=it.amount; line(`You pocket <span class="r-common">${it.amount} gold</span>.`,'good'); removeBag(it.id); G.sel=null; }
+  else if(act==='drop'){ removeBag(it.id); G.sel=null; line(`You drop the ${esc(it.name)}.`,'sys'); }
+  recompute(); hud(); renderDetail('bag');
+}
+function removeBag(id){ G.bag=G.bag.filter(x=>x.id!==id); }
+function equip(it){
+  if(!it.slot) return;
+  const prev=G.worn[it.slot]; removeBag(it.id); G.worn[it.slot]=it;
+  if(prev) G.bag.push(prev);
+  recompute(); line(`You equip the <span class="r-${it.rarity}">${esc(it.name)}</span>.`, it.hp?'good':'');
+  hud(); renderDetail('worn');
+}
+function unequip(slot){
+  const it=G.worn[slot]; if(!it) return; G.worn[slot]=null; G.bag.push(it);
+  recompute(); line(`You remove the ${esc(it.name)}.`,'sys'); hud(); renderDetail('bag');
+}
+function usePotion(it){
+  if(it.use==='heal'){ const h=Math.min(it.amount,G.maxHp-G.hp); G.hp+=h; line(`You drink the ${esc(it.name)} and recover <span class="good">${h}</span> vitality.`,'good'); }
+  else { G.dmgBuff=it.boost; G.buffTurns=it.turns; line(`You drink the ${esc(it.name)}. Your blows will strike <span class="boss">+${it.boost}</span> harder for ${it.turns} turns!`,'good'); }
+  removeBag(it.id); G.sel=null; hud(); renderDetail('bag');
+}
+
+// add loot items (objects) with on-screen chips
+function grantLoot(items){
+  if(!items||!items.length) return;
+  const chips=[];
+  items.forEach(it=>{
+    if(it.type==='coins'){ G.gold+=it.amount; chips.push(`<span class="loot-chip">${svg('coin','common',16)}<span class="r-common">${it.amount} gold</span></span>`); }
+    else { G.bag.push(it); chips.push(`<span class="loot-chip b-${it.rarity}">${svg(it.icon,it.rarity,16)}<span class="r-${it.rarity}">${esc(it.name)}</span></span>`); }
+  });
+  const p=line(`<span class="sys">You find:</span>`,'loot-line');
+  p.innerHTML=`<span class="sys" style="width:100%">You find:</span>`+chips.join('');
+}
+
+// ---------- start ----------
+async function beginGame(){
+  $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#game').style.display='flex';
+  recompute(); hud(); $('#cmd').focus();
+  if(G.cfg.demo){ $('#modeTag').textContent='OFFLINE DEMO · procedural'; demoStart(); return; }
+  // Detect a local proxy (server.py keeps the key server-side). If none exists
+  // — e.g. hosted statically on GitHub Pages — call the provider straight from
+  // the browser with the player's own key (Groq & Gemini allow CORS).
+  G.useProxy=false;
+  try{
+    const r=await fetch('/api/config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({base_url:G.cfg.base_url,token:G.cfg.token})});
+    if(r.ok) G.useProxy=true;
+  }catch(e){ G.useProxy=false; }
+  if(!G.useProxy && G.cfg.provider==='ollama'){
+    line('Ollama only works through the local server. Launch <span class="sys">python3 server.py</span>, or choose Groq / Gemini to play online.','dmg'); return;
+  }
+  $('#modeTag').textContent=`LIVE · ${G.cfg.provider.toUpperCase()} · ${G.cfg.model}${G.useProxy?'':' · direct'}`;
+  if(!G._resumed) aiTurn('__begin__');
+}
+
+// ---------- commands ----------
+function submitCommand(){
+  if(G.busy||G.over) return;
+  const raw=$('#cmd').value.trim(); if(!raw) return;
+  $('#cmd').value=''; cmdHist.push(raw); histPos=cmdHist.length;
+  line(esc(raw),'you');
+  const low=raw.toLowerCase();
+  if(low==='help'||low==='?'){ return help(); }
+  if(low==='clear'){ $('#log').innerHTML=''; return; }
+  if(G.cfg.demo) demoTurn(raw); else aiTurn(raw);
+}
+function help(){ line('Type plain English: <span class="sys">go north · examine the altar · open the chest · attack the troll · equip the steel sword · drink a potion · rest</span>. Each attack rolls a d6 — a <span class="boss">6 is a critical strike for ×5 damage</span>. Click items in your Satchel/Equipment to inspect, equip or use them.','sys'); }
+
+// ---------- AI game master ----------
+function systemPrompt(){
+  const peril={gentle:'Forgiving. Death is rare; wounds heal with rest.',balanced:'Classic danger. Careless choices wound or kill; clever ones are rewarded.',brutal:'Unforgiving. Traps and grue-like horrors punish recklessness; death is frequent.'}[G.cfg.difficulty];
+  const seed=G.cfg.seed?`\nThe player seeded this realm with: "${G.cfg.seed}". Honour that flavour.`:'';
+  return `You are the GAME MASTER of TORKED, a medieval-fantasy text adventure in the spirit of Zork — dry wit, vivid second-person prose, dungeons, ruins, forests, villages, monsters and magic. Keep the world CONSISTENT using the STATE block each turn.
+
+STYLE: Address the player as "you". 2–5 sentences of atmospheric narration. Name locations like a parser game ("The Sunken Nave"). Reward exploration and clever, specific actions. Introduce monsters, the occasional powerful BOSS, hidden treasure CHESTS, and merchants.${seed}
+PERIL: ${peril}
+
+LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". You MAY narrate specific treasure flavour, but the game generates the actual items.
+COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow and let it wound or kill the foe heavily. Any other number is an ordinary strike. Honour the dice result you are given; never invent your own.
+
+Reply with ONLY one JSON object, no markdown:
+{
+  "narration": "what the player perceives",
+  "location": "short location name",
+  "exits": ["ways out"],
+  "hp_delta": 0, "mp_delta": 0, "gold_delta": 0, "score_delta": 0, "depth": 0,
+  "in_combat": false,
+  "chest": false,            // true if a treasure chest is opened/looted this turn
+  "boss_present": false,     // true if a boss is in the scene
+  "boss_defeated": false,    // true the turn a boss dies (game grants big loot)
+  "game_over": false, "ending": ""
+}
+Only change stats when the fiction justifies it. Never break character outside the JSON.`;
+}
+function stateBlock(cmd){
+  const worn=Object.entries(G.worn).filter(([,v])=>v).map(([s,v])=>`${s}:${v.name}(${v.rarity})`).join(', ')||'nothing';
+  const bag=G.bag.map(i=>i.name).join(', ')||'empty';
+  return `STATE (authoritative):
+location: ${G.location}
+exits: ${JSON.stringify(G.exits)}
+hp: ${G.hp}/${G.maxHp}  resolve: ${G.mp}/${G.maxMp}  attack: ${G.atk}  defence: ${G.def}
+gold: ${G.gold}  score: ${G.score}  depth: ${G.depth}  damage-buff: ${G.buffTurns>0?G.dmgBuff:0}
+worn: ${worn}
+satchel: ${bag}
+turn: ${G.turn}
+
+PLAYER COMMAND: ${cmd==='__begin__'?'(Begin. Open at the threshold of the realm — set the scene and first choices.)':cmd}`;
+}
+async function aiTurn(cmd){
+  G.busy=true; G.turn++;
+  // d6 critical-strike roll on attacks: a 6 = critical hit (5x weapon damage)
+  let dice='';
+  if(cmd!=='__begin__' && /attack|strike|fight|hit|slay|stab|kill|swing|cast|shoot|fire/i.test(cmd)){
+    const roll=ri(1,6);
+    if(roll===6){ dice=' [DICE ROLL = 6: CRITICAL HIT. The player\'s weapon strikes for 5x (five times) its normal damage this turn — narrate a devastating critical blow and apply heavy damage / likely a kill to the foe accordingly.]';
+      line('🎲 <span class="boss">You roll a 6 — CRITICAL STRIKE! (×5 damage)</span>','boss'); }
+    else { dice=` [DICE ROLL = ${roll}: an ordinary strike, normal damage.]`; }
+  }
+  // rare world event (storms, quakes, dragons...) — scene-aware & very rare
+  if(cmd!=='__begin__'){
+    const ev=pickEvent(G.location);
+    if(ev){ dice += ` [WORLD EVENT — ${ev.name} strikes the scene this turn. Narrate it dramatically as it happens and apply its effect to the player: deal damage via a negative hp_delta${ev.dragon?' and treat the dragon as a deadly boss the player must fight or flee':''}${ev.chest?', or set "chest":true for a lucky find':''}. This is a rare environmental event, not something the player chose.]`;
+      line('<span class="boss">⚡ A rare event stirs the realm…</span>','boss'); }
+  }
+  const ghost=line('the realm stirs…','sys');
+  const messages=[{role:'system',content:systemPrompt()}].concat(G.history.slice(-12)).concat([{role:'user',content:stateBlock(cmd)+dice}]);
+  try{
+    const payload={model:G.cfg.model,messages,max_tokens:900,temperature:0.9};
+    const res = G.useProxy
+      ? await fetch('/api/turn',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)})
+      : await fetch(G.cfg.base_url+'/chat/completions',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+G.cfg.token},body:JSON.stringify(payload)});
+    const data=await res.json().catch(()=>({})); ghost.remove();
+    if(!res.ok){ const m=(data&&(data.error?.message||data.error))||JSON.stringify(data).slice(0,260);
+      line(`The connection to the realm falters. <span class="sys">(${res.status}) ${esc(String(m))}</span>`,'dmg');
+      if(res.status===401||res.status===403) line('Key refused or model unavailable on this engine. Reload to try another.','sys');
+      G.busy=false; return; }
+    await applyTurn(data.choices?.[0]?.message?.content||'', cmd);
+  }catch(err){ ghost.remove(); line(`A fog swallows the realm. <span class="sys">${esc(String(err))}</span>`,'dmg'); }
+  G.busy=false; $('#cmd').focus();
+}
+async function applyTurn(raw,cmd){
+  let o=null; try{o=JSON.parse(raw);}catch(e){const m=raw.match(/\{[\s\S]*\}/); if(m){try{o=JSON.parse(m[0]);}catch(_){}}}
+  if(!o){ await typeLine(raw||'(The realm is silent.)'); G.history.push({role:'user',content:stateBlock(cmd)}); G.history.push({role:'assistant',content:raw}); return; }
+  G.history.push({role:'user',content:stateBlock(cmd)}); G.history.push({role:'assistant',content:JSON.stringify(o)});
+  if(typeof o.location==='string'&&o.location) G.location=o.location;
+  if(Array.isArray(o.exits)) G.exits=o.exits;
+  if(Number.isFinite(o.hp_delta)) G.hp=Math.min(G.maxHp,G.hp+o.hp_delta);
+  if(Number.isFinite(o.mp_delta)) G.mp=Math.max(0,Math.min(G.maxMp,G.mp+o.mp_delta));
+  if(Number.isFinite(o.gold_delta)) G.gold=Math.max(0,G.gold+o.gold_delta);
+  if(Number.isFinite(o.score_delta)) G.score+=o.score_delta;
+  if(Number.isFinite(o.depth)) G.depth=Math.max(G.depth,o.depth);
+  if(G.buffTurns>0 && /attack|strike|fight|hit|slay|kill|cast/i.test(cmd)) G.buffTurns--;
+  hud();   // refresh stats/location immediately, before the text types out
+  line(`<span class="room-name">${esc(G.location)}</span>`);
+  await typeLine(o.narration||'', o.hp_delta<0?'dmg':'');
+  // loot & bosses (game-controlled)
+  if(o.boss_defeated){ const sc=120+G.depth*45; G.score+=sc; line(`<span class="boss">The boss falls! +${sc} score.</span>`,'boss'); grantLoot(genLoot('boss',G.depth)); }
+  else if(o.chest){ grantLoot(genLoot('chest',G.depth)); }
+  recompute(); hud();
+  if(G.hp<=0||o.game_over===true){ endGame(o.ending||(G.hp<=0?'You have died. The realm closes over you.':'Your tale ends here.')); }
+}
+function endGame(msg){ G.over=true; clearSave(); line(esc(msg),'death'); line(`Final score: ${G.score} · Depth ${G.depth} · Gold ${G.gold}`,'sys'); line('Reload to forge a new realm.','sys'); $('#cmd').disabled=true; }
+
+// =====================================================================
+//  OFFLINE DEMO — exercises every system (loot, rarity, bosses, potions,
+//  armour, equipment) with no key. The live game is far richer.
+// =====================================================================
+const D={adj:['Sunken','Mossy','Shattered','Whispering','Gilded','Forgotten','Ashen','Drowned','Vaulted','Cobwebbed'],
+  place:['Nave','Crypt','Gallery','Cistern','Armoury','Rookery','Stair','Cloister','Vault','Hollow'],
+  detail:['Water drips from unseen heights and echoes like distant bells.','Faded murals show kings whose names have crumbled away.','A cold draught carries the smell of iron and old smoke.','Veins of pale fungus light the stones with a sickly glow.','Bones lie heaped in a corner, picked clean and politely arranged.'],
+  foe:['a hunched goblin','a pallid ghoul','a giant cave-spider','a rattling skeleton'],
+  boss:['the Bonewrought Tyrant','the Gravecrown Lich','the Sunless Ogre-King','the Wyrm of Ash']};
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+async function demoStart(){
+  line(`<span class="room-name">The Threshold</span>`);
+  await typeLine('You stand at a broken archway where the living world ends and the realm below begins. Cold air rises from a stair descending into dark, and somewhere far down, something vast turns in its sleep.');
+  G.location='The Threshold'; G.exits=['down','south']; hud();
+  line('This is the offline demo: try <span class="sys">go down · open chest · attack · drink a potion · rest</span>, and click items in your Satchel to equip them. The live game invents far richer realms.','sys');
+}
+async function demoTurn(raw){
+  G.busy=true;
+  try{
+  const c=raw.toLowerCase();
+  // movement
+  if(/^(go|move|walk|head)?\s*(down|north|south|east|west|up|in|out|through)/.test(c)||G.exits.some(e=>c.includes(e))){
+    if(G.foe&&G.foe.boss){ line(`${cap(G.foe.name)} blocks your escape!`,'boss'); return; }
+    G.depth += /down|in|through/.test(c)?1:0;
+    const name=`The ${rnd(D.adj)} ${rnd(D.place)}`; G.location=name; G.exits=shuffle(['north','south','east','west','down','up']).slice(0,ri(2,4));
+    line(`<span class="room-name">${esc(name)}</span>`);
+    let s=rnd(D.detail); const r=Math.random();
+    G.score+=2; G.foe=null; G.chestHere=false;
+    if(G.depth>0 && G.depth%5===0 && r<0.7){ G.foe={name:rnd(D.boss),hp:30+G.depth*6,atk:6+G.depth,boss:true}; s+=` A monstrous presence fills the chamber — ${G.foe.name}!`; }
+    else if(r<0.34){ G.foe={name:rnd(D.foe),hp:8+G.depth*2,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} lurches from the shadows.`; }
+    else if(r<0.62){ G.chestHere=true; s+=' A banded treasure chest sits against the far wall.'; }
+    hud(); await typeLine(s, G.foe?'dmg':'good');
+    const ev=pickEvent(G.location); if(ev && !G.over) await fireEventDemo(ev);
+    return;
+  }
+  // open chest
+  if(/(open|loot|unlock).*(chest|box)|^open$|chest/.test(c)){
+    if(G.chestHere){ line('You heave the lid open.','good'); grantLoot(genLoot('chest',G.depth)); G.chestHere=false; hud(); }
+    else line('There is no chest here.','sys');
+    return;
+  }
+  // attack
+  if(/(attack|hit|fight|kill|strike|stab|slay)/.test(c)){
+    if(!G.foe){ line('Nothing here means you harm — yet.','sys'); return; }
+    const roll=ri(1,6), crit=(roll===6);          // d6 — a 6 is a critical strike (x5)
+    let dmg=ri(1,3)+G.atk+(G.buffTurns>0?G.dmgBuff:0);
+    if(crit) dmg*=5;
+    G.foe.hp-=dmg; if(G.buffTurns>0)G.buffTurns--;
+    const die=crit?`<span class="boss">🎲 You roll a 6 — CRITICAL STRIKE! ×5!</span> `:`<span class="sys">🎲 You roll a ${roll}.</span> `;
+    if(G.foe.hp<=0){
+      const boss=G.foe.boss, sc=boss?(120+G.depth*45):(8+G.depth*3); G.score+=sc;
+      line(`${die}You hit for ${dmg}. ${cap(G.foe.name)} falls! <span class="${boss?'boss':'good'}">+${sc} score.</span>`, boss?'boss':'good');
+      grantLoot(genLoot(boss?'boss':'normal',G.depth)); G.foe=null; hud(); return;
+    }
+    const back=Math.max(1, ri(1,G.foe.atk)-Math.floor(G.def/2)); G.hp=Math.max(0,G.hp-back);
+    line(`${die}You hit for ${dmg}; ${G.foe.name} (${Math.max(0,G.foe.hp)} hp) rakes you for ${back}.`, crit?'good':'dmg'); hud();
+    if(G.hp<=0) endGame('Your vitality fails. The realm claims another nameless adventurer.');
+    return;
+  }
+  // rest
+  if(/(rest|sleep|heal|wait)/.test(c)){
+    if(G.foe){ line(`You cannot rest with ${G.foe.name} upon you!`,'dmg'); return; }
+    const h=Math.min(ri(2,5),G.maxHp-G.hp); G.hp+=h; line(`You catch your breath and recover ${h} vitality.`,'good'); hud(); return;
+  }
+  // drink potion
+  if(/(drink|quaff|use).*(potion|vial|flask|elixir|draught|brew)|potion/.test(c)){
+    const pot=G.bag.find(i=>i.type==='potion'); if(pot){ G.sel=pot; usePotion(pot); } else line('You have no potions.','sys'); return;
+  }
+  // look / examine
+  if(/(look|examine|inspect|search)/.test(c)){
+    line(rnd(D.detail)+(G.chestHere?' A treasure chest waits here.':'')+(G.foe?` ${cap(G.foe.name)} watches you.`:''),''); return;
+  }
+  line('The demo understands: <span class="sys">go down · open chest · attack · drink a potion · rest · look</span>. The live game understands anything.','sys');
+  } finally { G.busy=false; $('#cmd').focus(); }
+}
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+// ---------- auto-load a logo image if one exists in the folder ----------
+(function(){
+  const cands=['logo.png','torked-logo.png','torked.png','Torked.png','logo.webp','logo.jpg','logo.svg'];
+  let i=0;
+  (function tryNext(){
+    if(i>=cands.length) return;                 // none found — keep the text title
+    const url=cands[i++], im=new Image();
+    im.onload=()=>document.querySelectorAll('.logo-text').forEach(el=>{
+      const img=document.createElement('img'); img.src=url; img.alt='Torked';
+      img.className = el.classList.contains('brand') ? 'logo-img-bar' : 'logo-img-hero';
+      el.replaceWith(img);
+    });
+    im.onerror=tryNext;
+    im.src=url+'?v='+Date.now();
+  })();
+})();
+</script>
+</body>
+</html>
