@@ -73,6 +73,14 @@
   .resumeBtn{display:none;width:100%;margin:0 0 16px;cursor:pointer;font-family:"Cinzel",serif;font-size:15px;letter-spacing:.5px;
     padding:13px;border-radius:8px;border:1px solid #4a7a3a;background:linear-gradient(#27451c,#162b10);color:#d4ecb6}
   .resumeBtn:hover{background:linear-gradient(#33571f,#1c3713);box-shadow:0 0 16px rgba(120,180,90,.25)}
+  .howplay{text-align:left;margin:4px 0 2px;border:1px solid var(--line);border-radius:9px;background:#100c06;overflow:hidden}
+  .howplay summary{cursor:pointer;list-style:none;padding:11px 14px;font-family:"Cinzel",serif;font-size:11px;
+    letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)}
+  .howplay summary::-webkit-details-marker{display:none}
+  .howplay summary::after{content:"▸";float:right;color:var(--ink-dim)}
+  .howplay[open] summary::after{content:"▾"}
+  .howplay .body{padding:2px 15px 14px;font-size:14px;line-height:1.7;color:var(--ink)}
+  .howplay .body b{color:var(--gold-bright)}
   .setupfoot{margin-top:18px;display:flex;justify-content:center}
   .warn{display:none;margin-top:14px;padding:10px 12px;border:1px solid var(--blood);border-radius:6px;
     color:#e7a59c;font-size:13px;text-align:left;line-height:1.6}.warn code{color:var(--gold-bright)}
@@ -188,6 +196,19 @@
       &nbsp;·&nbsp;
       <a id="obAdv" style="cursor:pointer;color:var(--ink-dim)">Use a different engine</a>
     </div>
+
+    <details class="howplay">
+      <summary>⚔ How to play</summary>
+      <div class="body">
+        Just type what you want to do in plain English — the AI runs the whole world around you.<br><br>
+        <b>Explore</b> — go north · examine the altar · open the chest<br>
+        <b>Fight</b> — attack the troll … roll a <b>6</b> for a ×5 critical strike!<br>
+        <b>Survive</b> — rest · drink a potion<br>
+        <b>Gear up</b> — take the sword, then equip it. Click items in your <b>Satchel</b> or <b>Equipment</b> to inspect, equip or use them — better gear is rarer (common → rare → epic → legendary).<br><br>
+        Beware rare storms, quakes and dragon attacks. Defeat <b>bosses</b> for big score and the best loot. Your progress <b>autosaves</b>, so you can leave and continue later.
+      </div>
+    </details>
+
     <div class="setupfoot"><a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a></div>
   </section>
 
