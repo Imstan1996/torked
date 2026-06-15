@@ -557,6 +557,32 @@ function genLoot(bias, depth, count){
   return out;
 }
 
+// ---------- travelling merchants (NPCs) ----------
+const MERCHANT_NAMES=['A hooded travelling merchant','A one-eyed pedlar','A wandering tinker','A masked relic-seller','A grizzled caravan trader','A cloaked wares-witch'];
+// base price + per-travel scaling, by rarity (legendary is steep on purpose)
+const PRICE={common:[18,6], rare:[75,20], epic:[220,50], legendary:[600,140]};
+function makeMerchant(depth, name){
+  const rarity=rollRarity('chest');
+  const item = Math.random()<0.72 ? makeGear(rnd(SLOTS), rarity, depth) : makePotion(rarity, depth);
+  const [base,per]=PRICE[rarity];
+  const price=Math.max(5, Math.round((base + per*(depth||0)) * (0.9 + Math.random()*0.3)));
+  return {name:name||rnd(MERCHANT_NAMES), item, rarity, price};
+}
+function showMerchant(){
+  const m=G.merchant; if(!m) return; const it=m.item;
+  const chip=`<span class="loot-chip b-${it.rarity}">${svg(it.icon,it.rarity,18)}<span class="r-${it.rarity}">${esc(it.name)}</span></span>`;
+  const p=line('','loot-line');
+  p.innerHTML=`<span class="sys" style="width:100%">${esc(m.name)} offers a single <span class="r-${it.rarity}">${RARITY[it.rarity].label}</span> wares for <b class="r-common">${m.price} gold</b> — type <b>buy</b> to trade (you have ${G.gold}):</span>`+chip;
+}
+function tryBuy(){
+  if(!G.merchant){ line('There is no merchant here to trade with.','sys'); return; }
+  const m=G.merchant, it=m.item;
+  if(G.gold < m.price){ line(`You cannot afford the <span class="r-${it.rarity}">${esc(it.name)}</span> — it costs <b>${m.price}</b> gold and you carry only <b>${G.gold}</b>.`,'dmg'); return; }
+  G.gold-=m.price; SFX.play('gold'); G.bag.push(it);
+  line(`You hand over <span class="r-common">${m.price} gold</span> and the merchant gives you the <span class="r-${it.rarity}">${esc(it.name)}</span>. They melt back into the road.`,'good');
+  G.merchant=null; hud();
+}
+
 // ---------- rare world events (scene-aware, very rare) ----------
 const EVENTS=[
   {name:'an Earthquake', k:['any'], text:'Without warning the earth heaves; cracks race across the floor and a hail of stone crashes down.', hp:[3,8]},
@@ -642,7 +668,7 @@ if(loadCfg() && (PROVIDERS[$('#provider').value]||{}).needsKey){
 // ---------- autosave / resume ----------
 const SAVE_KEY='torked_save_v1';
 const SAVE_FIELDS=['baseMaxHp','hp','maxHp','mp','maxMp','gold','score','depth','atk','def','equipHp',
-  'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','cfg'];
+  'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','merchant','cfg'];
 function saveGame(){
   if(G.over) return;
   if(G.turn===0 && (G.history||[]).length===0 && (G.bag||[]).length===0 && G.score===0) return; // nothing meaningful yet
@@ -898,6 +924,7 @@ function submitCommand(){
   const low=raw.toLowerCase();
   if(low==='help'||low==='?'){ return help(); }
   if(low==='clear'){ $('#log').innerHTML=''; return; }
+  if(/^(buy|purchase|barter)\b/.test(low) || low==='buy it' || (G.merchant && /^trade\b/.test(low))){ tryBuy(); return; }
   if(handleGearCommand(low)) return;     // equip / wear / unequip / drink handled here
   if(G.cfg.demo) demoTurn(raw); else aiTurn(raw);
 }
@@ -933,7 +960,7 @@ function handleGearCommand(low){
   }
   return false;
 }
-function help(){ line('Type plain English: <span class="sys">go north · examine the altar · open the chest · attack the troll · equip the steel sword · drink a potion · rest</span>. Each attack rolls a d6 — a <span class="boss">6 is a critical strike for ×5 damage</span>. Click items in your Satchel/Equipment to inspect, equip or use them.','sys'); }
+function help(){ line('Type plain English: <span class="sys">go north · examine the altar · open the chest · attack the troll · equip the steel sword · drink a potion · buy (from a merchant) · rest</span>. Each attack rolls a d6 — a <span class="boss">6 is a critical strike for ×5 damage</span>. Click items in your Satchel/Equipment to inspect, equip or use them.','sys'); }
 
 // ---------- AI game master ----------
 function systemPrompt(){
@@ -947,6 +974,7 @@ PERIL: ${peril}
 
 LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". You MAY narrate treasure flavour, but the game generates the actual items.
 COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given.
+NPCs & MERCHANTS: Populate the land with people — hermits, pilgrims, guards, beggars, wandering minstrels. Occasionally a TRAVELLING MERCHANT appears who sells exactly ONE item. When a merchant is present, set "merchant": true (and optionally "merchant_name"); the GAME picks the single item, its rarity and its gold price, and handles the purchase when the player types "buy". Keep "merchant": true on later turns while that merchant is still with the player (see the STATE "merchant" line); once the player buys or moves on, stop setting it. Do NOT invent your own prices or hand over items yourself — the GAME does the trade.
 
 Reply with ONLY one JSON object, no markdown:
 {
@@ -960,6 +988,8 @@ Reply with ONLY one JSON object, no markdown:
   "boss_present": false,     // true if a powerful boss is in the scene
   "boss_name": "",           // the boss's name when one is present (e.g. "Grakka the Bonebreaker")
   "boss_defeated": false,    // true the turn a boss dies (game grants big loot)
+  "merchant": false,         // true while a travelling merchant is present (game sets item/price, handles "buy")
+  "merchant_name": "",       // the merchant's name/title, if any
   "game_over": false, "ending": ""
 }
 Only change stats when the fiction justifies it. Never break character outside the JSON.`;
@@ -974,6 +1004,7 @@ hp: ${G.hp}/${G.maxHp}  resolve: ${G.mp}/${G.maxMp}  attack: ${G.atk}  defence: 
 gold: ${G.gold}  score: ${G.score}  depth: ${G.depth}  damage-buff: ${G.buffTurns>0?G.dmgBuff:0}
 worn: ${worn}
 satchel: ${bag}
+merchant: ${G.merchant ? `${G.merchant.name} is here selling a ${G.merchant.item.rarity} "${G.merchant.item.name}" for ${G.merchant.price} gold (player types "buy" to purchase — the GAME handles it)` : 'none present'}
 turn: ${G.turn}
 
 PLAYER COMMAND: ${cmd==='__begin__'?'(Begin the adventure out in the open land — e.g. a forked road at the edge of a forest, a village outskirts, or a windswept moor with a distant keep. Set the scene and the directions/places the player can head toward.)':cmd}`;
@@ -1015,6 +1046,7 @@ async function applyTurn(raw,cmd){
   let o=null; try{o=JSON.parse(raw);}catch(e){const m=raw.match(/\{[\s\S]*\}/); if(m){try{o=JSON.parse(m[0]);}catch(_){}}}
   if(!o){ await typeLine(raw||'(The realm is silent.)'); G.history.push({role:'user',content:stateBlock(cmd)}); G.history.push({role:'assistant',content:raw}); return; }
   G.history.push({role:'user',content:stateBlock(cmd)}); G.history.push({role:'assistant',content:JSON.stringify(o)});
+  const prevLoc=G.location;
   if(typeof o.location==='string'&&o.location) G.location=o.location;
   if(Array.isArray(o.exits)) G.exits=o.exits;
   if(Number.isFinite(o.hp_delta)){ G.hp=Math.min(G.maxHp,G.hp+o.hp_delta); if(o.hp_delta<0) SFX.play('hurt'); }
@@ -1026,10 +1058,15 @@ async function applyTurn(raw,cmd){
   // boss appears — banner + stinger (only on a new boss)
   if(o.boss_present){ const bn=(o.boss_name||'A mighty foe'); if(_bossShown!==bn){ _bossShown=bn; showBossBanner(bn.toUpperCase()); } }
   else { _bossShown=null; }
+  // travelling merchant — the GAME generates the single item + price
+  let _showMerch=false;
+  if(o.merchant){ if(!G.merchant){ G.merchant=makeMerchant(G.depth, o.merchant_name); _showMerch=true; } }
+  else if(G.location!==prevLoc){ G.merchant=null; }   // left the area
   hud();   // refresh stats/location immediately, before the text types out
   line(`<span class="room-name">${esc(G.location)}</span>`);
   await typeLine(o.narration||'', o.hp_delta<0?'dmg':'');
   if(TTS.on) TTS.speak(o.narration||'');
+  if(_showMerch) showMerchant();
   // loot & bosses (game-controlled)
   if(o.boss_defeated){ const sc=120+G.depth*45; G.score+=sc; line(`<span class="boss">The boss falls! +${sc} score.</span>`,'boss'); grantLoot(genLoot('boss',G.depth)); }
   else if(o.chest){ SFX.play('chest'); setTimeout(()=>grantLoot(genLoot('chest',G.depth)),650); }
@@ -1068,11 +1105,14 @@ async function demoTurn(raw){
     G.location=name; G.exits=shuffle(['north','south','east','west','back the way you came','onward']).slice(0,ri(2,4));
     line(`<span class="room-name">${esc(name)}</span>`);
     let s=rnd(D.detail); const r=Math.random();
-    G.score+=2; G.foe=null; G.chestHere=false;
+    G.score+=2; G.foe=null; G.chestHere=false; G.merchant=null;
+    let merchHere=false;
     if(G.depth>0 && G.depth%5===0 && r<0.7){ G.foe={name:rnd(D.boss),hp:30+G.depth*6,atk:6+G.depth,boss:true}; s+=` A monstrous presence rises to meet you — ${G.foe.name}!`; showBossBanner(G.foe.name.toUpperCase()); }
-    else if(r<0.34){ G.foe={name:rnd(D.foe),hp:8+G.depth*2,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} springs from cover.`; }
-    else if(r<0.62){ G.chestHere=true; s+=' A banded travelling-chest lies half-hidden in the grass.'; }
+    else if(r<0.30){ G.foe={name:rnd(D.foe),hp:8+G.depth*2,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} springs from cover.`; }
+    else if(r<0.50){ G.chestHere=true; s+=' A banded travelling-chest lies half-hidden in the grass.'; }
+    else if(r<0.66){ G.merchant=makeMerchant(G.depth); merchHere=true; s+=` ${G.merchant.name} has set up a tiny stall by the wayside.`; }
     hud(); await typeLine(s, G.foe?'dmg':'good');
+    if(merchHere) showMerchant();
     if(TTS.on) TTS.speak(s);
     const ev=pickEvent(G.location); if(ev && !G.over) await fireEventDemo(ev);
     return;
