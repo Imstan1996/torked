@@ -82,6 +82,29 @@
   .howplay .body{padding:2px 15px 14px;font-size:14px;line-height:1.7;color:var(--ink)}
   .howplay .body b{color:var(--gold-bright)}
   .setupfoot{margin-top:18px;display:flex;justify-content:center}
+  /* character creation */
+  #charCreate{display:none;margin:auto;max-width:640px;background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:12px;padding:30px 30px;box-shadow:0 18px 50px var(--shadow);text-align:center}
+  .cc-title{font-family:"Cinzel",serif;font-size:34px;letter-spacing:4px;color:var(--gold-bright);margin:0 0 18px;text-shadow:0 2px 0 #000}
+  .cc-wrap{display:flex;gap:20px;text-align:left;align-items:flex-start}
+  .cc-avatar{flex:none;width:160px;height:160px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#100c06}
+  .cc-avatar svg{width:100%;height:100%}
+  .cc-fields{flex:1;min-width:0}
+  .cc-opts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+  .cc-opts button{flex:none;font-family:"IM Fell English",serif;font-size:13px;letter-spacing:.3px;text-transform:none;
+    padding:6px 12px;border-radius:16px;border:1px solid var(--line);background:#120e07;color:var(--ink-dim);cursor:pointer}
+  .cc-opts button.sel{border-color:var(--gold);color:var(--gold-bright);background:#251a09}
+  .cc-swatches{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
+  .cc-swatches .sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);cursor:pointer}
+  .cc-swatches .sw.sel{border-color:var(--gold-bright);box-shadow:0 0 8px rgba(216,169,58,.5)}
+  #charCreate .btns{margin-top:20px}
+  /* profile card in sidebar */
+  .profile{display:flex;align-items:center;gap:11px;padding:10px;margin-bottom:14px;border:1px solid var(--line);
+    border-radius:9px;background:#100c06}
+  .profile .pf-av{flex:none;width:52px;height:52px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+  .profile .pf-av svg{width:100%;height:100%}
+  .profile .pf-name{font-family:"Cinzel",serif;font-weight:700;color:var(--gold-bright);font-size:15px;line-height:1.1}
+  .profile .pf-sub{font-size:12px;color:var(--ink-dim);margin-top:3px;line-height:1.3}
   .warn{display:none;margin-top:14px;padding:10px 12px;border:1px solid var(--blood);border-radius:6px;
     color:#e7a59c;font-size:13px;text-align:left;line-height:1.6}.warn code{color:var(--gold-bright)}
 
@@ -114,7 +137,21 @@
     100%{opacity:0;transform:translate(-50%,-52%) scale(1.02)}
   }
   .stage{display:flex;gap:18px;flex:1;min-height:0}
+  .maincol{flex:1;display:flex;flex-direction:column;min-height:0}
   #log{flex:1;overflow-y:auto;padding:6px 16px 6px 2px;line-height:1.66;font-size:17px;scroll-behavior:smooth}
+  /* enemy / boss combat panel */
+  #foePanel{display:none;margin:0 8px 10px 0;padding:9px 14px;border:1px solid var(--blood);border-radius:9px;
+    background:linear-gradient(180deg,#251210,#170c0a);box-shadow:0 4px 16px rgba(0,0,0,.4)}
+  #foePanel.boss{border-color:#e0843c;box-shadow:0 0 18px rgba(224,132,60,.3)}
+  .foe-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .foe-name{font-family:"Cinzel",serif;font-weight:700;letter-spacing:1px;color:#e7a59c;font-size:16px}
+  #foePanel.boss .foe-name{color:#f4cf6b;font-size:18px}
+  .foe-danger{font-size:12px;color:var(--ink-dim);font-family:"Cinzel",serif}
+  .foe-bar{position:relative;height:16px;background:#0b0905;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .foe-bar>i{display:block;height:100%;background:linear-gradient(90deg,#7a2c25,#d2685c);transition:width .35s}
+  #foePanel.boss .foe-bar>i{background:linear-gradient(90deg,#7a3a18,#e0843c)}
+  .foe-hp{position:absolute;inset:0;text-align:center;font-size:11px;line-height:16px;color:#fff;
+    font-family:"Cinzel",serif;text-shadow:0 1px 2px #000;font-variant-numeric:lining-nums}
   #log p{margin:0 0 13px}
   .you{color:var(--gold-bright)}.you::before{content:"\276F  ";color:var(--gold)}
   .room-name{font-family:"Cinzel",serif;color:var(--gold-bright);font-weight:700;letter-spacing:1px;font-size:18px}
@@ -301,6 +338,26 @@
     </div>
   </section>
 
+  <!-- ============ CHARACTER CREATION ============ -->
+  <section id="charCreate">
+    <h1 class="cc-title">Forge your hero</h1>
+    <div class="cc-wrap">
+      <div class="cc-avatar" id="ccAvatar"></div>
+      <div class="cc-fields">
+        <label for="ccName">Name</label>
+        <input id="ccName" type="text" maxlength="18" placeholder="e.g. Ayla of Blackpine" autocomplete="off" />
+        <label>Gender</label><div class="cc-opts" id="ccGender"></div>
+        <label>Hair style</label><div class="cc-opts" id="ccHair"></div>
+        <label>Hair colour</label><div class="cc-swatches" id="ccColour"></div>
+        <label>Garb</label><div class="cc-opts" id="ccGarb"></div>
+      </div>
+    </div>
+    <div class="btns">
+      <button id="ccRandom" class="ghost">🎲 Randomize</button>
+      <button id="ccStart">Enter the Realm ▸</button>
+    </div>
+  </section>
+
   <!-- ============ GAME ============ -->
   <section id="game">
     <div id="bossBanner"><div class="bb-sub">A mighty foe blocks your path</div><div class="bb-name"></div></div>
@@ -314,8 +371,12 @@
       </div>
     </div>
     <div class="stage">
-      <div id="log"></div>
+      <div class="maincol">
+        <div id="foePanel"></div>
+        <div id="log"></div>
+      </div>
       <aside>
+        <div class="profile" id="profile"></div>
         <div class="vitals">
           <h3>Adventurer</h3>
           <div class="stat"><span>Vitality</span><span class="v" id="hpv">20 / 20</span></div>
@@ -607,7 +668,7 @@ async function fireEventDemo(ev){
   if(ev.hp){ const d=ri(ev.hp[0],ev.hp[1]); G.hp=Math.max(0,G.hp-d); SFX.play('hurt'); line(`You take <span class="dmg">${d}</span> damage.`,'dmg'); }
   if(ev.mp){ const d=ri(ev.mp[0],ev.mp[1]); G.mp=Math.max(0,G.mp-d); line(`You lose <span class="dmg">${d}</span> resolve.`,'dmg'); }
   if(ev.chest){ grantLoot(genLoot('chest',G.depth)); }
-  if(ev.dragon){ G.foe={name:'the Dragon',hp:26+G.depth*5,atk:7+G.depth,boss:true}; showBossBanner('THE DRAGON'); line('The dragon coils to strike — fight or flee!','boss'); }
+  if(ev.dragon){ const hp=26+G.depth*5; G.foe={name:'the Dragon',hp,maxHp:hp,atk:7+G.depth,boss:true}; showBossBanner('THE DRAGON'); line('The dragon coils to strike — fight or flee!','boss'); }
   hud();
   if(G.hp<=0) endGame('The world itself has slain you. The realm claims another nameless adventurer.');
 }
@@ -668,7 +729,7 @@ if(loadCfg() && (PROVIDERS[$('#provider').value]||{}).needsKey){
 // ---------- autosave / resume ----------
 const SAVE_KEY='torked_save_v1';
 const SAVE_FIELDS=['baseMaxHp','hp','maxHp','mp','maxMp','gold','score','depth','atk','def','equipHp',
-  'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','merchant','cfg'];
+  'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','merchant','char','cfg'];
 function saveGame(){
   if(G.over) return;
   if(G.turn===0 && (G.history||[]).length===0 && (G.bag||[]).length===0 && G.score===0) return; // nothing meaningful yet
@@ -686,7 +747,7 @@ async function resumeGame(){
   Object.assign(G, s.G); G.busy=false; G.sel=null; G._resumed=true; G.over=false;
   $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#game').style.display='flex';
   $('#log').innerHTML=s.log||''; $('#cmd').disabled=false;
-  recompute(); hud();
+  recompute(); hud(); renderProfile();
   if(G.cfg.demo){ $('#modeTag').textContent='OFFLINE DEMO · procedural'; }
   else {
     G.useProxy=false;
@@ -717,7 +778,7 @@ function startLive(){
   G.cfg={provider:pname,base_url:p.base,token,model:$('#custom').value.trim()||$('#model').value,
     difficulty:$('#diff').value,seed:$('#seed').value.trim(),demo:false};
   saveCfg();   // remember for next time
-  beginGame(); return true;
+  showCharCreate(); return true;   // build your hero, then beginGame()
 }
 $('#startBtn').addEventListener('click',startLive);
 
@@ -738,8 +799,65 @@ if(!isFile){
 }
 $('#demoBtn').addEventListener('click',()=>{
   G.cfg={provider:'',base_url:'',token:'',model:'',difficulty:$('#diff').value,seed:$('#seed').value.trim(),demo:true};
+  showCharCreate();
+});
+
+// ================= CHARACTER CREATION =================
+const HAIR_STYLES=['Short','Long','Ponytail','Braided','Mohawk','Hooded','Bald'];
+const HAIR_COLOURS=[['Black','#1c1c1f'],['Brown','#5a3a1f'],['Auburn','#7a2f18'],['Blonde','#d8b24c'],['Ginger','#c8521f'],['Silver','#b9bcc2'],['White','#e9e4d6'],['Raven','#10101a']];
+const GARBS=[['Peasant','#6b5a3a'],['Knight','#7b7e87'],['Mage','#3c3c80'],['Ranger','#3c5c34'],['Rogue','#272729'],['Noble','#6c2a5c']];
+const GENDERS=['Male','Female','Other'];
+let CH={name:'',gender:'Male',hair:'Short',colour:HAIR_COLOURS[1],garb:GARBS[1]};
+function avatarSVG(c,size){ c=c||CH; const skin='#cda177';
+  const col=c.colour||c.hairColour||['','#2a1d12']; const hair=col[1]||'#2a1d12'; const garb=(c.garb&&c.garb[1])||'#6b5a3a'; const st=c.hair||'Short';
+  let back='',top='',hood='';
+  if(st==='Long'||st==='Braided') back=`<path d="M28 40 Q28 18 50 18 Q72 18 72 40 L72 80 Q66 70 64 56 Q58 64 50 64 Q42 64 36 56 Q34 70 28 80 Z" fill="${hair}"/>`;
+  else if(st==='Ponytail') back=`<path d="M30 40 Q30 18 50 18 Q70 18 70 42 Q66 36 50 34 Q34 36 30 42 Z" fill="${hair}"/><path d="M67 32 q15 8 9 32 q-3 9 -9 5 q7 -18 -6 -33 z" fill="${hair}"/>`;
+  if(st!=='Bald'&&st!=='Hooded'){ if(st==='Mohawk') top=`<path d="M46 12 L54 12 L52 40 L48 40 Z" fill="${hair}"/>`; else top=`<path d="M30 46 Q30 20 50 20 Q70 20 70 46 Q70 36 60 32 Q55 38 50 38 Q45 38 40 32 Q30 36 30 46 Z" fill="${hair}"/>`; }
+  if(st==='Braided') back+=`<path d="M31 56 q-6 16 -2 30 M69 56 q6 16 2 30" stroke="${hair}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  if(st==='Hooded') hood=`<path d="M20 64 Q20 14 50 14 Q80 14 80 64 Q70 46 50 46 Q30 46 20 64 Z" fill="${garb}"/><path d="M20 64 Q20 14 50 14 Q80 14 80 64" fill="none" stroke="#0007" stroke-width="2"/>`;
+  const bg=`<rect width="100" height="100" fill="#120d07"/><circle cx="50" cy="50" r="48" fill="#1c150c"/>`;
+  const shoulders=`<path d="M12 100 Q12 74 50 72 Q88 74 88 100 Z" fill="${garb}"/><path d="M40 76 L50 86 L60 76" fill="none" stroke="#0006" stroke-width="2"/>`;
+  const neck=`<rect x="44" y="58" width="12" height="16" fill="${skin}"/>`;
+  const head=`<ellipse cx="50" cy="44" rx="17" ry="21" fill="${skin}"/><circle cx="33" cy="46" r="3.5" fill="${skin}"/><circle cx="67" cy="46" r="3.5" fill="${skin}"/>`;
+  const face=`<circle cx="43" cy="45" r="2" fill="#241a10"/><circle cx="57" cy="45" r="2" fill="#241a10"/><path d="M44 53 q6 4 12 0" stroke="#6b4a30" stroke-width="1.4" fill="none"/>`;
+  return `<svg viewBox="0 0 100 100" width="${size||100}" height="${size||100}">${bg}${back}${shoulders}${neck}${head}${top}${face}${hood}</svg>`;
+}
+function ccRender(){ $('#ccAvatar').innerHTML=avatarSVG(CH,160); }
+function ccBuild(){
+  $('#ccGender').innerHTML=GENDERS.map(g=>`<button data-g="${g}" class="${CH.gender===g?'sel':''}">${g}</button>`).join('');
+  $('#ccHair').innerHTML=HAIR_STYLES.map(h=>`<button data-h="${h}" class="${CH.hair===h?'sel':''}">${h}</button>`).join('');
+  $('#ccColour').innerHTML=HAIR_COLOURS.map((c,i)=>`<div class="sw ${CH.colour&&CH.colour[1]===c[1]?'sel':''}" data-c="${i}" title="${c[0]}" style="background:${c[1]}"></div>`).join('');
+  $('#ccGarb').innerHTML=GARBS.map((g,i)=>`<button data-garb="${i}" class="${CH.garb&&CH.garb[1]===g[1]?'sel':''}">${g[0]}</button>`).join('');
+  $('#ccGender').querySelectorAll('button').forEach(b=>b.onclick=()=>{CH.gender=b.dataset.g;ccBuild();ccRender();});
+  $('#ccHair').querySelectorAll('button').forEach(b=>b.onclick=()=>{CH.hair=b.dataset.h;ccBuild();ccRender();});
+  $('#ccColour').querySelectorAll('.sw').forEach(b=>b.onclick=()=>{CH.colour=HAIR_COLOURS[+b.dataset.c];ccBuild();ccRender();});
+  $('#ccGarb').querySelectorAll('button').forEach(b=>b.onclick=()=>{CH.garb=GARBS[+b.dataset.garb];ccBuild();ccRender();});
+}
+function showCharCreate(){
+  $('#onboard').style.display='none'; $('#setup').style.display='none';
+  try{ const saved=JSON.parse(localStorage.getItem('torked_char')||'null'); if(saved) CH=Object.assign(CH,saved); }catch(e){}
+  $('#ccName').value=CH.name||'';
+  ccBuild(); ccRender();
+  $('#charCreate').style.display='block'; $('#ccName').focus();
+}
+$('#ccRandom').addEventListener('click',()=>{ CH.gender=rnd(GENDERS); CH.hair=rnd(HAIR_STYLES); CH.colour=rnd(HAIR_COLOURS); CH.garb=rnd(GARBS); ccBuild(); ccRender(); });
+$('#ccStart').addEventListener('click',()=>{
+  CH.name=($('#ccName').value.trim())||'Wanderer';
+  G.char={name:CH.name, gender:CH.gender, hair:CH.hair, hairColour:CH.colour, garb:CH.garb};
+  try{ localStorage.setItem('torked_char', JSON.stringify({name:CH.name,gender:CH.gender,hair:CH.hair,colour:CH.colour,garb:CH.garb})); }catch(e){}
+  $('#charCreate').style.display='none';
   beginGame();
 });
+$('#ccName').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#ccStart').click(); });
+function renderProfile(){
+  const c=G.char, el=$('#profile'); if(!el) return;
+  if(!c){ el.style.display='none'; return; }
+  el.style.display='flex';
+  el.innerHTML=`<div class="pf-av">${avatarSVG(c,52)}</div><div><div class="pf-name">${esc(c.name||'Adventurer')}</div><div class="pf-sub">${esc(c.gender||'')} · ${esc(c.hairColour?c.hairColour[0]:'')} ${esc((c.hair||'').toLowerCase())} hair · ${esc(c.garb?c.garb[0]:'')}</div></div>`;
+}
+function charDesc(){ const c=G.char; if(!c) return ''; const g=c.gender; const who=g==='Female'?'a woman':g==='Male'?'a man':'a person'; const pron=g==='Female'?'she/her':g==='Male'?'he/him':'they/them';
+  return `\nTHE PLAYER: ${who} named ${c.name}, with ${(c.hairColour?c.hairColour[0]:'').toLowerCase()} ${(c.hair||'').toLowerCase()} hair, in the garb of a ${(c.garb?c.garb[0]:'traveller').toLowerCase()}. Use ${pron} pronouns and weave their name and look into the tale.`; }
 $('#cmd').addEventListener('keydown',e=>{ if(e.key==='Enter') submitCommand(); });
 document.querySelectorAll('.quickbar button').forEach(b=>b.addEventListener('click',()=>{
   const c=b.getAttribute('data-c');
@@ -795,7 +913,7 @@ function hud(){
   $('#goldv').textContent=G.gold; $('#scorev').textContent=G.score; $('#depthv').textContent=G.depth;
   $('#buffv').textContent=G.buffTurns>0?`+${G.dmgBuff} (${G.buffTurns})`:'—';
   $('#exitsv').textContent=G.exits.length?G.exits.join(' · '):'—'; $('#locv').textContent=G.location;
-  renderBag(); renderWorn();
+  renderBag(); renderWorn(); renderFoe();
   saveGame();   // autosave after every state change
 }
 function renderBag(){
@@ -827,6 +945,14 @@ function renderWorn(){
     return `<div class="wornrow" data-id="${it.id}"><span>${svg(it.icon,it.rarity,18)}</span><span class="wn r-${it.rarity}">${esc(it.name)}<small>${SLOT_LBL[slot]}</small></span><span class="ws">${st.join(' · ')||'—'}</span></div>`;
   }).join('') : '<div class="wornempty">Nothing equipped yet — take an item, then type <b>equip &lt;name&gt;</b> or click it in your Satchel.</div>';
   $('#wornList').querySelectorAll('.wornrow').forEach(r=>r.addEventListener('click',()=>select(r.getAttribute('data-id'),'worn')));
+}
+function renderFoe(){
+  const fp=$('#foePanel'), f=G.foe;
+  if(!f || (f.hp!=null && f.hp<=0)){ fp.style.display='none'; fp.classList.remove('boss'); return; }
+  const max=f.maxHp||f.hp||1, pct=Math.max(0,Math.min(100,(f.hp/max)*100));
+  fp.classList.toggle('boss', !!f.boss); fp.style.display='block';
+  fp.innerHTML=`<div class="foe-row"><span class="foe-name">${f.boss?'☠ ':''}${esc(cap(f.name||'Foe'))}</span><span class="foe-danger">⚔ ~${f.atk||0} damage</span></div>
+    <div class="foe-bar"><i style="width:${pct}%"></i><span class="foe-hp">${Math.max(0,Math.round(f.hp))} / ${Math.round(max)}</span></div>`;
 }
 function findItem(id){ return G.bag.find(x=>x.id===id) || Object.values(G.worn).find(x=>x&&x.id===id); }
 function select(id,src){ G.sel=findItem(id)||null; renderDetail(src); renderBag(); renderWorn(); }
@@ -896,8 +1022,8 @@ function grantLoot(items){
 // ---------- start ----------
 async function beginGame(){
   SFX.init();   // unlock audio on this user gesture
-  $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#game').style.display='flex';
-  recompute(); hud(); $('#cmd').focus();
+  $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#charCreate').style.display='none'; $('#game').style.display='flex';
+  recompute(); hud(); renderProfile(); $('#cmd').focus();
   if(G.cfg.demo){ $('#modeTag').textContent='OFFLINE DEMO · procedural'; demoStart(); return; }
   // Detect a local proxy (server.py keeps the key server-side). If none exists
   // — e.g. hosted statically on GitHub Pages — call the provider straight from
@@ -969,11 +1095,11 @@ function systemPrompt(){
   return `You are the GAME MASTER of TORKED, a medieval-fantasy text adventure in the spirit of Zork — dry wit, vivid second-person prose, monsters and magic. Keep the world CONSISTENT using the STATE block each turn.
 
 WORLD: This is an open medieval LAND, not an underground dungeon. The player journeys OVERLAND — through forests, moors, roads, rivers, fields, villages, markets, ruins, coastlines and hills. They travel by direction (north/south/east/west) and along roads/paths. They may ENTER discrete places when it fits the scene — a cave, a castle, a watchtower, a crypt, a tavern, a mine — and later leave them again. Do NOT make the game an endless descent: only "go down"/descend when there is a REAL, specific place to enter (a castle cellar, a mine, a barrow). Most movement is across the surface and into/out of named locations.
-STYLE: Address the player as "you". 2–5 sentences of atmospheric narration. Name locations like a parser game ("The Blackpine Crossroads", "Gate of Ashford Keep"). Offer overland exits AND entrances to nearby places. Reward exploration and clever, specific actions. Introduce wildlife, bandits, beasts, the occasional powerful BOSS, hidden treasure CHESTS, hermits and merchants.${seed}
+STYLE: Address the player as "you". 2–5 sentences of atmospheric narration. Name locations like a parser game ("The Blackpine Crossroads", "Gate of Ashford Keep"). Offer overland exits AND entrances to nearby places. Reward exploration and clever, specific actions. Introduce wildlife, bandits, beasts, the occasional powerful BOSS, hidden treasure CHESTS, hermits and merchants.${seed}${charDesc()}
 PERIL: ${peril}
 
 LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". You MAY narrate treasure flavour, but the game generates the actual items.
-COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given.
+COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given. Whenever a creature or boss is fighting the player set "in_combat": true and fill "enemy" with its name, current hp, max_hp and attack so the GAME can show its health bar; LOWER enemy.hp as the player wounds it, and when it dies or the fight ends set "in_combat": false (and "boss_defeated": true if it was a boss).
 NPCs & MERCHANTS: Populate the land with people — hermits, pilgrims, guards, beggars, wandering minstrels. Occasionally a TRAVELLING MERCHANT appears who sells exactly ONE item. When a merchant is present, set "merchant": true (and optionally "merchant_name"); the GAME picks the single item, its rarity and its gold price, and handles the purchase when the player types "buy". Keep "merchant": true on later turns while that merchant is still with the player (see the STATE "merchant" line); once the player buys or moves on, stop setting it. Do NOT invent your own prices or hand over items yourself — the GAME does the trade.
 
 Reply with ONLY one JSON object, no markdown:
@@ -984,6 +1110,7 @@ Reply with ONLY one JSON object, no markdown:
   "hp_delta": 0, "mp_delta": 0, "gold_delta": 0, "score_delta": 0,
   "depth": 0,                // how far the player has JOURNEYED (distinct areas reached); rises as they reach new places; used to scale danger & loot
   "in_combat": false,
+  "enemy": {"name":"","hp":0,"max_hp":0,"attack":0},   // the creature/boss fighting the player now; lower hp as it's hurt; leave name empty when no fight
   "chest": false,            // true if a treasure chest is opened/looted this turn
   "boss_present": false,     // true if a powerful boss is in the scene
   "boss_name": "",           // the boss's name when one is present (e.g. "Grakka the Bonebreaker")
@@ -1058,6 +1185,9 @@ async function applyTurn(raw,cmd){
   // boss appears — banner + stinger (only on a new boss)
   if(o.boss_present){ const bn=(o.boss_name||'A mighty foe'); if(_bossShown!==bn){ _bossShown=bn; showBossBanner(bn.toUpperCase()); } }
   else { _bossShown=null; }
+  // enemy combat panel (AI supplies the stats)
+  if(o.enemy && o.enemy.name){ G.foe={name:o.enemy.name, hp:Number(o.enemy.hp)||1, maxHp:Number(o.enemy.max_hp||o.enemy.maxHp||o.enemy.hp)||1, atk:Number(o.enemy.attack||o.enemy.atk||o.enemy.damage)||0, boss:!!o.boss_present}; }
+  else if(o.in_combat===false || o.boss_defeated){ G.foe=null; }
   // travelling merchant — the GAME generates the single item + price
   let _showMerch=false;
   if(o.merchant){ if(!G.merchant){ G.merchant=makeMerchant(G.depth, o.merchant_name); _showMerch=true; } }
@@ -1107,8 +1237,8 @@ async function demoTurn(raw){
     let s=rnd(D.detail); const r=Math.random();
     G.score+=2; G.foe=null; G.chestHere=false; G.merchant=null;
     let merchHere=false;
-    if(G.depth>0 && G.depth%5===0 && r<0.7){ G.foe={name:rnd(D.boss),hp:30+G.depth*6,atk:6+G.depth,boss:true}; s+=` A monstrous presence rises to meet you — ${G.foe.name}!`; showBossBanner(G.foe.name.toUpperCase()); }
-    else if(r<0.30){ G.foe={name:rnd(D.foe),hp:8+G.depth*2,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} springs from cover.`; }
+    if(G.depth>0 && G.depth%5===0 && r<0.7){ const hp=30+G.depth*6; G.foe={name:rnd(D.boss),hp,maxHp:hp,atk:6+G.depth,boss:true}; s+=` A monstrous presence rises to meet you — ${G.foe.name}!`; showBossBanner(G.foe.name.toUpperCase()); }
+    else if(r<0.30){ const hp=8+G.depth*2; G.foe={name:rnd(D.foe),hp,maxHp:hp,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} springs from cover.`; }
     else if(r<0.50){ G.chestHere=true; s+=' A banded travelling-chest lies half-hidden in the grass.'; }
     else if(r<0.66){ G.merchant=makeMerchant(G.depth); merchHere=true; s+=` ${G.merchant.name} has set up a tiny stall by the wayside.`; }
     hud(); await typeLine(s, G.foe?'dmg':'good');
