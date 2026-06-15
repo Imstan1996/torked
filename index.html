@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
   :root{
     --bg:#0c0a06; --panel:#15110a; --panel2:#1c160d; --ink:#e9dcb8; --ink-dim:#9c8a63;
@@ -82,6 +84,28 @@
   .howplay .body{padding:2px 15px 14px;font-size:14px;line-height:1.7;color:var(--ink)}
   .howplay .body b{color:var(--gold-bright)}
   .setupfoot{margin-top:18px;display:flex;justify-content:center}
+  /* live counter + leaderboard */
+  .livebar{display:flex;justify-content:center;align-items:center;gap:18px;margin:2px 0 14px}
+  .online-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-dim);font-family:"Cinzel",serif;letter-spacing:.5px}
+  .online-badge .dot{width:8px;height:8px;border-radius:50%;background:#5fbf5f;box-shadow:0 0 7px #5fbf5f;animation:opulse 2s infinite}
+  .online-badge b{color:#8fd98f;font-variant-numeric:lining-nums}
+  @keyframes opulse{50%{opacity:.4}}
+  .lb-open{cursor:pointer;color:var(--gold);font-family:"Cinzel",serif;font-size:12px;letter-spacing:.5px;text-decoration:none}
+  .lb-open:hover{color:var(--gold-bright)}
+  #lbOverlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(8,6,3,.8);align-items:center;justify-content:center;padding:18px}
+  #lbOverlay.show{display:flex}
+  .lb-card{position:relative;width:100%;max-width:440px;max-height:82vh;overflow:hidden;background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--gold);border-radius:12px;padding:22px;box-shadow:0 20px 60px #000}
+  .lb-close{position:absolute;top:10px;right:12px;width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#120e07;color:var(--ink-dim);cursor:pointer}
+  .lb-close:hover{color:var(--ink)}
+  .lb-title{font-family:"Cinzel",serif;color:var(--gold-bright);text-align:center;margin:0 0 16px;letter-spacing:2px;font-size:22px}
+  .lb-list{overflow-y:auto;max-height:64vh}
+  .lb-loading,.lb-empty{color:var(--ink-dim);font-style:italic;text-align:center;padding:24px 0}
+  .lb-row{display:flex;align-items:center;gap:12px;padding:9px 8px;border-top:1px solid var(--line)}
+  .lb-row .rk{width:30px;text-align:center;font-family:"Cinzel",serif;color:var(--ink-dim)}
+  .lb-row .nm{flex:1;font-family:"Cinzel",serif;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lb-row .sc{font-family:"Cinzel",serif;color:var(--gold-bright);font-variant-numeric:lining-nums}
+  .lb-row.top1 .rk,.lb-row.top1 .nm{color:#f4cf6b}.lb-row.top2 .rk,.lb-row.top2 .nm{color:#cfd2da}.lb-row.top3 .rk,.lb-row.top3 .nm{color:#d8a06a}
   /* character creation */
   #charCreate{display:none;margin:auto;max-width:640px;background:linear-gradient(180deg,var(--panel2),var(--panel));
     border:1px solid var(--line);border-radius:12px;padding:30px 30px;box-shadow:0 18px 50px var(--shadow);text-align:center}
@@ -245,6 +269,10 @@
   <section id="onboard">
     <h1 class="logo-text">TORKED</h1>
     <div class="tag">Welcome, adventurer. Grab a free key and your realm awaits.</div>
+    <div class="livebar">
+      <span class="online-badge"><span class="dot"></span><b class="online-count">–</b>&nbsp;playing now</span>
+      <a class="lb-open">🏆 Leaderboard</a>
+    </div>
     <button class="resumeBtn">⮌ Continue your quest</button>
 
     <div class="howto">
@@ -364,6 +392,8 @@
     <div class="topbar">
       <div class="brand logo-text">TORKED</div>
       <div class="right">
+        <span class="online-badge"><span class="dot"></span><b class="online-count">–</b>&nbsp;online</span>
+        <button class="iconbtn lb-open" title="Leaderboard">🏆</button>
         <span class="mini" id="modeTag"></span>
         <button id="sfxToggle" class="iconbtn on" title="Sound effects on/off">🔊</button>
         <button id="ttsToggle" class="iconbtn" title="Read narration aloud">🗣️</button>
@@ -439,6 +469,15 @@
       <button id="newGame" data-c="__new">↻ new realm</button>
     </div>
   </section>
+
+  <!-- ============ LEADERBOARD ============ -->
+  <div id="lbOverlay">
+    <div class="lb-card">
+      <button class="lb-close" id="lbClose">✕</button>
+      <h2 class="lb-title">🏆 Hall of Heroes</h2>
+      <div class="lb-list" id="lbList"><div class="lb-loading">Summoning the rankings…</div></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -452,6 +491,51 @@ const $ = s => document.querySelector(s);
 const esc = s => (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const rnd = a => a[Math.floor(Math.random()*a.length)];
 const ri  = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
+
+// ================= FIREBASE: live player counter + leaderboard =================
+const firebaseConfig = {
+  apiKey: "AIzaSyCPbRNaLJIw2dVNxiIqro73sdUtAryLkgk",
+  authDomain: "torked-game.firebaseapp.com",
+  databaseURL: "https://torked-game-default-rtdb.firebaseio.com",
+  projectId: "torked-game",
+  storageBucket: "torked-game.firebasestorage.app",
+  messagingSenderId: "539540803865",
+  appId: "1:539540803865:web:da8acb7a8c2b28f5403588"
+};
+let DB=null;
+try{ if(window.firebase){ firebase.initializeApp(firebaseConfig); DB=firebase.database(); } }catch(e){ console.warn('firebase', e); }
+function initPresence(){
+  if(!DB) return;
+  try{
+    const onlineRef=DB.ref('online'), me=onlineRef.push();
+    DB.ref('.info/connected').on('value', s=>{ if(s.val()===true){ me.onDisconnect().remove(); me.set(true); } });
+    onlineRef.on('value', s=>{ const n=s.numChildren()||0; document.querySelectorAll('.online-count').forEach(el=>el.textContent=n); });
+  }catch(e){}
+}
+function submitScore(name, score){
+  if(!DB || !(score>0)) return;
+  try{ DB.ref('scores').push({name:String(name||'Wanderer').slice(0,18), score:Math.round(score), ts:Date.now()}); }catch(e){}
+}
+function openLeaderboard(myName, myScore){
+  const ov=document.getElementById('lbOverlay'), list=document.getElementById('lbList'); if(!ov) return;
+  ov.classList.add('show'); list.innerHTML='<div class="lb-loading">Summoning the rankings…</div>';
+  if(!DB){ list.innerHTML='<div class="lb-empty">Leaderboard unavailable right now.</div>'; return; }
+  try{ DB.ref('scores').orderByChild('score').limitToLast(25).once('value', s=>{
+    const arr=[]; s.forEach(c=>{ const v=c.val()||{}; arr.push({name:v.name||'—', score:v.score||0}); });
+    arr.reverse();
+    if(!arr.length){ list.innerHTML='<div class="lb-empty">No heroes yet — be the first to make the boards.</div>'; return; }
+    let mine=false;
+    list.innerHTML=arr.map((r,i)=>{
+      const top=i<3?` top${i+1}`:''; const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1);
+      const me=(!mine && myName && r.name===myName && r.score===Math.round(myScore))?' me':''; if(me) mine=true;
+      return `<div class="lb-row${top}${me}"><span class="rk">${medal}</span><span class="nm">${esc(r.name)}</span><span class="sc">${r.score}</span></div>`;
+    }).join('');
+  }); }catch(e){ list.innerHTML='<div class="lb-empty">Could not load the rankings.</div>'; }
+}
+document.querySelectorAll('.lb-open').forEach(b=>b.addEventListener('click',()=>openLeaderboard()));
+{ const lc=document.getElementById('lbClose'); if(lc) lc.addEventListener('click',()=>document.getElementById('lbOverlay').classList.remove('show')); }
+{ const lo=document.getElementById('lbOverlay'); if(lo) lo.addEventListener('click',e=>{ if(e.target.id==='lbOverlay') lo.classList.remove('show'); }); }
+initPresence();
 
 // ====================================================================
 //  AUDIO — synthesized sound effects (Web Audio, no files needed)
@@ -1203,7 +1287,10 @@ async function applyTurn(raw,cmd){
   recompute(); hud();
   if(G.hp<=0||o.game_over===true){ endGame(o.ending||(G.hp<=0?'You have died. The realm closes over you.':'Your tale ends here.')); }
 }
-function endGame(msg){ G.over=true; clearSave(); line(esc(msg),'death'); line(`Final score: ${G.score} · Travels ${G.depth} · Gold ${G.gold}`,'sys'); line('Reload to forge a new realm.','sys'); $('#cmd').disabled=true; }
+function endGame(msg){ G.over=true; clearSave(); line(esc(msg),'death'); line(`Final score: ${G.score} · Travels ${G.depth} · Gold ${G.gold}`,'sys'); line('Reload to forge a new realm.','sys'); $('#cmd').disabled=true;
+  const nm=(G.char&&G.char.name)||'Wanderer'; submitScore(nm, G.score);
+  if(G.score>0){ line('<span class="sys">Your score has been carved into the Hall of Heroes.</span>'); setTimeout(()=>openLeaderboard(nm, G.score), 900); }
+}
 
 // =====================================================================
 //  OFFLINE DEMO — exercises every system (loot, rarity, bosses, potions,
