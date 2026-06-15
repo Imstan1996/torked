@@ -157,7 +157,9 @@
     align-items:center;justify-content:center;cursor:pointer;position:relative;transition:.12s}
   .cell:hover{background:#1a1308}
   .cell.sel{outline:2px solid var(--gold)}
-  .cell .qty{position:absolute;right:2px;bottom:1px;font-size:10px;color:var(--gold-bright)}
+  .cell .qty{position:absolute;right:2px;bottom:1px;font-size:10px;color:var(--gold-bright);z-index:2}
+  img.art{object-fit:contain;vertical-align:middle;border-radius:3px}
+  .cell img.art,.slot img.art{width:88%!important;height:88%!important}
   .cell.empty{cursor:default;opacity:.5}
   .bagempty{color:var(--ink-dim);font-style:italic;text-align:center;padding:14px 0}
 
@@ -486,9 +488,15 @@ const ICON = {
   misc:'<circle cx="12" cy="12" r="7"/>',
 };
 const COLOR = {common:'#cdc7b6',rare:'#5aa0e0',epic:'#b277e6',legendary:'#f4a623'};
-function svg(name, rarity, size=26){
+// keys that have a painted 2D art icon (icon-<key>.png in the folder)
+const IMG_ICONS = new Set(['weapon','head','body','legs','shield','hands','feet','ring','amulet','potion','coin','chest','staff']);
+function svgVec(name, rarity, size){   // always the simple vector silhouette (for empty slots)
   const c = COLOR[rarity]||'#cdc7b6';
   return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${c}" stroke="none">${ICON[name]||ICON.misc}</svg>`;
+}
+function svg(name, rarity, size=26){
+  if(IMG_ICONS.has(name)) return `<img class="art" src="icon-${name}.png" width="${size}" height="${size}" alt="" draggable="false">`;
+  return svgVec(name, rarity, size);
 }
 
 // ---------- item generation ----------
@@ -782,7 +790,7 @@ function renderWorn(){
     const it=G.worn[slot];
     if(it){ const sel=G.sel&&G.sel.id===it.id?' sel':'';
       return `<div class="slot filled b-${it.rarity}${sel}" data-id="${it.id}" title="${esc(it.name)}">${svg(it.icon,it.rarity,26)}<span class="lbl">${SLOT_LBL[slot]}</span></div>`; }
-    return `<div class="slot empty" title="${SLOT_LBL[slot]}">${svg(slot,'common',26)}<span class="lbl">${SLOT_LBL[slot]}</span></div>`;
+    return `<div class="slot empty" title="${SLOT_LBL[slot]}">${svgVec(slot,'common',26)}<span class="lbl">${SLOT_LBL[slot]}</span></div>`;
   }).join('');
   $('#eqGrid').querySelectorAll('.slot.filled').forEach(c=>c.addEventListener('click',()=>select(c.getAttribute('data-id'),'worn')));
   $('#sumAtk').textContent=G.atk; $('#sumDef').textContent=G.def; $('#sumHp').textContent=G.equipHp;

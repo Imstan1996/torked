@@ -105,6 +105,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except Exception:
             payload = {}
 
+        if self.path == "/api/geticons":
+            # one-off helper: download generated item art into the repo folder
+            saved = []
+            for name, url in (payload.items() if isinstance(payload, dict) else []):
+                try:
+                    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req, timeout=60, context=SSL_CTX) as r:
+                        data = r.read()
+                    with open(os.path.join(HERE, "icon-" + name + ".webp"), "wb") as f:
+                        f.write(data)
+                    saved.append(name)
+                except Exception as e:
+                    saved.append(name + ":ERR:" + str(e)[:80])
+            self._send(200, json.dumps({"saved": saved}))
+            return
+
         if self.path == "/api/config":
             if "base_url" in payload and payload["base_url"]:
                 STATE["base_url"] = str(payload["base_url"]).rstrip("/")
