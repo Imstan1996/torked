@@ -92,8 +92,17 @@
   @keyframes opulse{50%{opacity:.4}}
   .lb-open{cursor:pointer;color:var(--gold);font-family:"Cinzel",serif;font-size:12px;letter-spacing:.5px;text-decoration:none}
   .lb-open:hover{color:var(--gold-bright)}
-  #lbOverlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(8,6,3,.8);align-items:center;justify-content:center;padding:18px}
-  #lbOverlay.show{display:flex}
+  #lbOverlay,#updOverlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(8,6,3,.8);align-items:center;justify-content:center;padding:18px}
+  #lbOverlay.show,#updOverlay.show{display:flex}
+  .upd-open{cursor:pointer;color:var(--gold);font-family:"Cinzel",serif;font-size:12px;letter-spacing:.5px;text-decoration:none}
+  .upd-open:hover{color:var(--gold-bright)}
+  .cl-entry{padding:4px 0 12px;border-top:1px solid var(--line)}
+  .cl-entry:first-child{border-top:0}
+  .cl-head{display:flex;justify-content:space-between;align-items:baseline;margin:10px 0 6px}
+  .cl-title{font-family:"Cinzel",serif;color:var(--gold-bright);font-size:15px;letter-spacing:.5px}
+  .cl-date{font-size:11px;color:var(--ink-dim);font-family:"Cinzel",serif}
+  .cl-list{margin:0;padding-left:18px;color:var(--ink);font-size:14px;line-height:1.65}
+  .cl-list li{margin-bottom:3px}
   .lb-card{position:relative;width:100%;max-width:440px;max-height:82vh;overflow:hidden;background:linear-gradient(180deg,var(--panel2),var(--panel));
     border:1px solid var(--gold);border-radius:12px;padding:22px;box-shadow:0 20px 60px #000}
   .lb-close{position:absolute;top:10px;right:12px;width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#120e07;color:var(--ink-dim);cursor:pointer}
@@ -272,6 +281,7 @@
     <div class="livebar">
       <span class="online-badge"><span class="dot"></span><b class="online-count">–</b>&nbsp;playing now</span>
       <a class="lb-open">🏆 Leaderboard</a>
+      <a class="upd-open">📜 What's new</a>
     </div>
     <button class="resumeBtn">⮌ Continue your quest</button>
 
@@ -478,6 +488,15 @@
       <div class="lb-list" id="lbList"><div class="lb-loading">Summoning the rankings…</div></div>
     </div>
   </div>
+
+  <!-- ============ WHAT'S NEW ============ -->
+  <div id="updOverlay">
+    <div class="lb-card">
+      <button class="lb-close" id="updClose">✕</button>
+      <h2 class="lb-title">📜 What's new</h2>
+      <div class="lb-list" id="updList"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -536,6 +555,37 @@ document.querySelectorAll('.lb-open').forEach(b=>b.addEventListener('click',()=>
 { const lc=document.getElementById('lbClose'); if(lc) lc.addEventListener('click',()=>document.getElementById('lbOverlay').classList.remove('show')); }
 { const lo=document.getElementById('lbOverlay'); if(lo) lo.addEventListener('click',e=>{ if(e.target.id==='lbOverlay') lo.classList.remove('show'); }); }
 initPresence();
+
+// ----- What's new / changelog -----
+const CHANGELOG=[
+ {date:'15 Jun 2026', title:'Heroes & Leaderboards', items:[
+   'Create your hero — name, gender, hair style & colour, and garb, with a live portrait',
+   'Live "players online" counter and a global Hall of Heroes leaderboard',
+   "Combat panel showing each enemy/boss's health bar and damage",
+   'Fixed: chest loot now lands in your satchel']},
+ {date:'15 Jun 2026', title:'A World Reforged', items:[
+   'The realm is now open land — forests, roads, villages, castles and caves you enter as real places',
+   'Travelling merchants who sell one rare item for gold (legendary costs a fortune)',
+   'Rare world events: storms, earthquakes, tornados and dragon attacks',
+   'Hand-painted dark-fantasy art for every item']},
+ {date:'15 Jun 2026', title:'Sights & Sounds', items:[
+   'Read-aloud narration with a natural voice',
+   'Sound effects for attacks, hits, chests, loot and gold',
+   'Animated boss-appearance banner']},
+ {date:'15 Jun 2026', title:'Foundations', items:[
+   'Critical strikes — roll a 6 for ×5 damage',
+   'Loot rarity (common → legendary), OSRS-style equipment, potions, and armour that boosts health',
+   'Autosave & resume; the game remembers your key',
+   'Play free with Groq, Gemini, Ollama or Hugging Face']}
+];
+function openUpdates(){
+  const ov=document.getElementById('updOverlay'), list=document.getElementById('updList'); if(!ov) return;
+  list.innerHTML=CHANGELOG.map(e=>`<div class="cl-entry"><div class="cl-head"><span class="cl-title">${esc(e.title)}</span><span class="cl-date">${esc(e.date)}</span></div><ul class="cl-list">${e.items.map(i=>`<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
+  ov.classList.add('show');
+}
+document.querySelectorAll('.upd-open').forEach(b=>b.addEventListener('click',openUpdates));
+{ const uc=document.getElementById('updClose'); if(uc) uc.addEventListener('click',()=>document.getElementById('updOverlay').classList.remove('show')); }
+{ const uo=document.getElementById('updOverlay'); if(uo) uo.addEventListener('click',e=>{ if(e.target.id==='updOverlay') uo.classList.remove('show'); }); }
 
 // ====================================================================
 //  AUDIO — synthesized sound effects (Web Audio, no files needed)
@@ -1101,6 +1151,7 @@ function grantLoot(items){
   p.innerHTML=`<span class="sys" style="width:100%">You find:</span>`+chips.join('');
   if(items.some(i=>i.type==='coins')) SFX.play('gold');
   if(items.some(i=>i.type!=='coins')) SFX.play('loot');
+  recompute(); hud();   // refresh satchel/stats immediately (loot can arrive on a delay)
 }
 
 // ---------- start ----------
