@@ -91,6 +91,28 @@
   .topbar .brand{font-family:"Cinzel",serif;color:var(--gold);letter-spacing:6px;font-size:22px;font-weight:700}
   .topbar .right{display:flex;align-items:center;gap:12px}
   .topbar .mini{color:var(--ink-dim);font-size:11px;letter-spacing:1px}
+  .iconbtn{flex:none;width:34px;height:34px;padding:0;font-size:16px;border-radius:8px;border:1px solid var(--line);
+    background:#120e07;color:var(--ink);cursor:pointer;opacity:.5;transition:.15s}
+  .iconbtn.on{opacity:1;border-color:var(--gold);box-shadow:0 0 10px rgba(216,169,58,.25)}
+  .iconbtn:hover{opacity:1}
+  /* boss banner */
+  #bossBanner{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%) scale(.6);
+    z-index:50;text-align:center;pointer-events:none;opacity:0;display:none;width:90%;max-width:760px}
+  #bossBanner.show{display:block;animation:bossIn 2.6s ease-out forwards}
+  #bossBanner .bb-sub{font-family:"IM Fell English",serif;font-style:italic;color:#e0843c;font-size:20px;letter-spacing:2px;
+    text-shadow:0 2px 12px #000}
+  #bossBanner .bb-name{font-family:"Cinzel",serif;font-weight:900;font-size:54px;letter-spacing:3px;color:#f4cf6b;
+    text-shadow:0 0 4px #000,0 4px 24px rgba(224,132,60,.7),0 0 40px rgba(224,132,60,.5);margin-top:4px}
+  @keyframes bossIn{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+    14%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}
+    22%{transform:translate(-50%,-50%) scale(1)}
+    24%{transform:translate(-48%,-50%) scale(1)}
+    27%{transform:translate(-52%,-50%) scale(1)}
+    30%{transform:translate(-50%,-50%) scale(1)}
+    82%{opacity:1}
+    100%{opacity:0;transform:translate(-50%,-52%) scale(1.02)}
+  }
   .stage{display:flex;gap:18px;flex:1;min-height:0}
   #log{flex:1;overflow-y:auto;padding:6px 16px 6px 2px;line-height:1.66;font-size:17px;scroll-behavior:smooth}
   #log p{margin:0 0 13px}
@@ -279,10 +301,13 @@
 
   <!-- ============ GAME ============ -->
   <section id="game">
+    <div id="bossBanner"><div class="bb-sub">A mighty foe blocks your path</div><div class="bb-name"></div></div>
     <div class="topbar">
       <div class="brand logo-text">TORKED</div>
       <div class="right">
         <span class="mini" id="modeTag"></span>
+        <button id="sfxToggle" class="iconbtn on" title="Sound effects on/off">🔊</button>
+        <button id="ttsToggle" class="iconbtn" title="Read narration aloud">🗣️</button>
         <a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a>
       </div>
     </div>
@@ -300,7 +325,7 @@
             <div class="stat"><span>Defence</span><span class="v" id="defv">0</span></div>
             <div class="stat"><span>Gold</span><span class="v" id="goldv">0</span></div>
             <div class="stat"><span>Score</span><span class="v" id="scorev">0</span></div>
-            <div class="stat"><span>Depth</span><span class="v" id="depthv">0</span></div>
+            <div class="stat"><span>Travels</span><span class="v" id="depthv">0</span></div>
             <div class="stat"><span>Buff</span><span class="v" id="buffv">—</span></div>
           </div>
         </div>
@@ -364,6 +389,64 @@ const $ = s => document.querySelector(s);
 const esc = s => (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const rnd = a => a[Math.floor(Math.random()*a.length)];
 const ri  = (a,b)=> a + Math.floor(Math.random()*(b-a+1));
+
+// ====================================================================
+//  AUDIO — synthesized sound effects (Web Audio, no files needed)
+// ====================================================================
+const SFX = {
+  on:true, ctx:null,
+  init(){ if(!this.ctx){ try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(this.ctx&&this.ctx.state==='suspended') this.ctx.resume(); },
+  _env(node,t0,a,d,peak){ const g=this.ctx.createGain(); g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(peak,t0+a); g.gain.exponentialRampToValueAtTime(0.0001,t0+a+d); node.connect(g); g.connect(this.ctx.destination); return g; },
+  _tone(freq,t0,a,d,peak,type){ const o=this.ctx.createOscillator(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t0); this._env(o,t0,a,d,peak); o.start(t0); o.stop(t0+a+d+0.02); return o; },
+  _noise(t0,dur,peak,filterType,freq,q){ const n=Math.floor(this.ctx.sampleRate*dur); const buf=this.ctx.createBuffer(1,n,this.ctx.sampleRate); const data=buf.getChannelData(0); for(let i=0;i<n;i++) data[i]=Math.random()*2-1; const src=this.ctx.createBufferSource(); src.buffer=buf; const f=this.ctx.createBiquadFilter(); f.type=filterType||'bandpass'; f.frequency.value=freq||1200; f.Q.value=q||1; const g=this.ctx.createGain(); g.gain.setValueAtTime(peak,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); src.connect(f); f.connect(g); g.connect(this.ctx.destination); src.start(t0); src.stop(t0+dur); return {src,f,g}; },
+  play(name,opts){ if(!this.on) return; this.init(); if(!this.ctx) return; const t=this.ctx.currentTime; try{ this['_'+name] && this['_'+name](t,opts||{}); }catch(e){} },
+  // weapon swing — whoosh + metallic ring (heavier for big weapons)
+  _attack(t,o){ const heavy=o.heavy; const w=this._noise(t,heavy?0.32:0.22,0.5,'bandpass',heavy?700:1400,1.2); w.f.frequency.setValueAtTime(heavy?500:2200,t); w.f.frequency.exponentialRampToValueAtTime(heavy?180:500,t+(heavy?0.3:0.2)); if(o.blade!==false){ this._tone(heavy?320:1300,t+0.02,0.005,heavy?0.4:0.22,0.18,'triangle'); this._tone(heavy?480:2000,t+0.03,0.005,0.18,0.10,'triangle'); } },
+  // got hit — low thud + short body impact
+  _hurt(t){ this._tone(150,t,0.005,0.18,0.5,'sine'); this._tone(95,t,0.005,0.28,0.4,'sine'); this._noise(t,0.16,0.35,'lowpass',500,0.7); },
+  // chest opening — wooden creak then latch thunk
+  _chest(t){ const o=this._tone(180,t,0.02,0.5,0.18,'sawtooth'); o.frequency.exponentialRampToValueAtTime(320,t+0.5); this._tone(90,t+0.52,0.005,0.18,0.45,'sine'); this._noise(t+0.52,0.12,0.3,'lowpass',400,0.6); },
+  // loot into bag — soft zip sweep
+  _loot(t){ const z=this._noise(t,0.28,0.25,'bandpass',800,6); z.f.frequency.setValueAtTime(600,t); z.f.frequency.exponentialRampToValueAtTime(3000,t+0.26); },
+  // gold — bright coin jingle
+  _gold(t){ [1318,1760,2093,1567].forEach((f,i)=>this._tone(f,t+i*0.05,0.004,0.16,0.16,'triangle')); },
+  // boss stinger — low brass swell
+  _boss(t){ const o=this._tone(70,t,0.04,1.1,0.5,'sawtooth'); o.frequency.exponentialRampToValueAtTime(110,t+0.9); const o2=this._tone(105,t,0.06,1.1,0.32,'sawtooth'); o2.frequency.exponentialRampToValueAtTime(165,t+0.9); this._noise(t,0.5,0.18,'lowpass',300,0.7); },
+  // magic — wand/staff zap (rising sparkle)
+  _magic(t){ const o=this._tone(520,t,0.01,0.4,0.22,'sine'); o.frequency.exponentialRampToValueAtTime(1600,t+0.35); this._tone(820,t+0.05,0.01,0.3,0.13,'sine'); this._noise(t,0.4,0.1,'highpass',2200,0.7); }
+};
+// pick an attack sound based on the equipped weapon
+function weaponSfx(){
+  const n=((G.worn&&G.worn.weapon&&G.worn.weapon.name)||'').toLowerCase();
+  if(/wand|staff|rod|sceptre|scepter|orb|tome|grimoire/.test(n)) return SFX.play('magic');
+  const heavy=/axe|mace|maul|hammer|warhammer|greatsword|glaive|halberd|club/.test(n);
+  SFX.play('attack',{heavy});
+}
+
+// ====================================================================
+//  TEXT-TO-SPEECH — read narration aloud with the least-robotic voice
+// ====================================================================
+const TTS = {
+  on:false, voice:null,
+  pickVoice(){ if(!('speechSynthesis' in window)) return; const vs=speechSynthesis.getVoices(); if(!vs.length) return;
+    const pref=['Google UK English Male','Google UK English Female','Google US English','Daniel','Serena','Arthur','Samantha','Microsoft Guy','Microsoft Aria'];
+    for(const name of pref){ const v=vs.find(x=>x.name===name); if(v){ this.voice=v; return; } }
+    this.voice = vs.find(x=>/en[-_]?GB/i.test(x.lang)) || vs.find(x=>/^en/i.test(x.lang)) || vs[0]; },
+  speak(text){ if(!this.on||!('speechSynthesis' in window)||!text) return; speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text.slice(0,600)); if(this.voice) u.voice=this.voice; u.rate=0.96; u.pitch=1.0; speechSynthesis.speak(u); },
+  stop(){ if('speechSynthesis' in window) speechSynthesis.cancel(); }
+};
+if('speechSynthesis' in window){ TTS.pickVoice(); speechSynthesis.onvoiceschanged=()=>TTS.pickVoice(); }
+
+// boss announcement banner
+let _bossShown=null;
+function showBossBanner(name){
+  const b=document.getElementById('bossBanner'); if(!b) return;
+  b.querySelector('.bb-name').textContent=name||'A BOSS APPEARS';
+  b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  SFX.play('boss');
+  setTimeout(()=>b.classList.remove('show'),2700);
+}
 
 // ---------- rarity ----------
 const RARITY = {
@@ -487,10 +570,10 @@ function pickEvent(loc){
 async function fireEventDemo(ev){
   line(`<span class="boss">⚡ ${ev.name.replace(/^an? /i,'').replace(/^the /i,'')} strikes!</span>`,'boss');
   await typeLine(ev.text,'dmg');
-  if(ev.hp){ const d=ri(ev.hp[0],ev.hp[1]); G.hp=Math.max(0,G.hp-d); line(`You take <span class="dmg">${d}</span> damage.`,'dmg'); }
+  if(ev.hp){ const d=ri(ev.hp[0],ev.hp[1]); G.hp=Math.max(0,G.hp-d); SFX.play('hurt'); line(`You take <span class="dmg">${d}</span> damage.`,'dmg'); }
   if(ev.mp){ const d=ri(ev.mp[0],ev.mp[1]); G.mp=Math.max(0,G.mp-d); line(`You lose <span class="dmg">${d}</span> resolve.`,'dmg'); }
   if(ev.chest){ grantLoot(genLoot('chest',G.depth)); }
-  if(ev.dragon){ G.foe={name:'the Dragon',hp:26+G.depth*5,atk:7+G.depth,boss:true}; line('The dragon coils to strike — fight or flee!','boss'); }
+  if(ev.dragon){ G.foe={name:'the Dragon',hp:26+G.depth*5,atk:7+G.depth,boss:true}; showBossBanner('THE DRAGON'); line('The dragon coils to strike — fight or flee!','boss'); }
   hud();
   if(G.hp<=0) endGame('The world itself has slain you. The realm claims another nameless adventurer.');
 }
@@ -636,6 +719,9 @@ document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click
   $('#paneBag').classList.toggle('active',t==='bag');
   $('#paneWorn').classList.toggle('active',t==='worn');
 }));
+// sound + read-aloud toggles
+$('#sfxToggle').addEventListener('click',()=>{ SFX.on=!SFX.on; SFX.init(); $('#sfxToggle').classList.toggle('on',SFX.on); $('#sfxToggle').textContent=SFX.on?'🔊':'🔇'; if(SFX.on) SFX.play('gold'); });
+$('#ttsToggle').addEventListener('click',()=>{ TTS.on=!TTS.on; $('#ttsToggle').classList.toggle('on',TTS.on); if(TTS.on){ TTS.pickVoice(); TTS.speak('Your tale shall be told aloud.'); } else TTS.stop(); });
 let cmdHist=[],histPos=-1;
 $('#cmd').addEventListener('keydown',e=>{
   if(e.key==='ArrowUp'&&cmdHist.length){histPos=Math.max(0,histPos-1);$('#cmd').value=cmdHist[histPos];e.preventDefault();}
@@ -737,7 +823,7 @@ function itemAction(act){
   if(act==='equip'){ equip(it); }
   else if(act==='unequip'){ unequip(it.slot); }
   else if(act==='use'){ usePotion(it); }
-  else if(act==='collect'){ G.gold+=it.amount; line(`You pocket <span class="r-common">${it.amount} gold</span>.`,'good'); removeBag(it.id); G.sel=null; }
+  else if(act==='collect'){ G.gold+=it.amount; SFX.play('gold'); line(`You pocket <span class="r-common">${it.amount} gold</span>.`,'good'); removeBag(it.id); G.sel=null; }
   else if(act==='drop'){ removeBag(it.id); G.sel=null; line(`You drop the ${esc(it.name)}.`,'sys'); }
   recompute(); hud(); renderDetail('bag');
 }
@@ -769,10 +855,13 @@ function grantLoot(items){
   });
   const p=line(`<span class="sys">You find:</span>`,'loot-line');
   p.innerHTML=`<span class="sys" style="width:100%">You find:</span>`+chips.join('');
+  if(items.some(i=>i.type==='coins')) SFX.play('gold');
+  if(items.some(i=>i.type!=='coins')) SFX.play('loot');
 }
 
 // ---------- start ----------
 async function beginGame(){
+  SFX.init();   // unlock audio on this user gesture
   $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#game').style.display='flex';
   recompute(); hud(); $('#cmd').focus();
   if(G.cfg.demo){ $('#modeTag').textContent='OFFLINE DEMO · procedural'; demoStart(); return; }
@@ -794,6 +883,7 @@ async function beginGame(){
 // ---------- commands ----------
 function submitCommand(){
   if(G.busy||G.over) return;
+  SFX.init();   // keep audio unlocked
   const raw=$('#cmd').value.trim(); if(!raw) return;
   $('#cmd').value=''; cmdHist.push(raw); histPos=cmdHist.length;
   line(esc(raw),'you');
@@ -841,23 +931,26 @@ function help(){ line('Type plain English: <span class="sys">go north · examine
 function systemPrompt(){
   const peril={gentle:'Forgiving. Death is rare; wounds heal with rest.',balanced:'Classic danger. Careless choices wound or kill; clever ones are rewarded.',brutal:'Unforgiving. Traps and grue-like horrors punish recklessness; death is frequent.'}[G.cfg.difficulty];
   const seed=G.cfg.seed?`\nThe player seeded this realm with: "${G.cfg.seed}". Honour that flavour.`:'';
-  return `You are the GAME MASTER of TORKED, a medieval-fantasy text adventure in the spirit of Zork — dry wit, vivid second-person prose, dungeons, ruins, forests, villages, monsters and magic. Keep the world CONSISTENT using the STATE block each turn.
+  return `You are the GAME MASTER of TORKED, a medieval-fantasy text adventure in the spirit of Zork — dry wit, vivid second-person prose, monsters and magic. Keep the world CONSISTENT using the STATE block each turn.
 
-STYLE: Address the player as "you". 2–5 sentences of atmospheric narration. Name locations like a parser game ("The Sunken Nave"). Reward exploration and clever, specific actions. Introduce monsters, the occasional powerful BOSS, hidden treasure CHESTS, and merchants.${seed}
+WORLD: This is an open medieval LAND, not an underground dungeon. The player journeys OVERLAND — through forests, moors, roads, rivers, fields, villages, markets, ruins, coastlines and hills. They travel by direction (north/south/east/west) and along roads/paths. They may ENTER discrete places when it fits the scene — a cave, a castle, a watchtower, a crypt, a tavern, a mine — and later leave them again. Do NOT make the game an endless descent: only "go down"/descend when there is a REAL, specific place to enter (a castle cellar, a mine, a barrow). Most movement is across the surface and into/out of named locations.
+STYLE: Address the player as "you". 2–5 sentences of atmospheric narration. Name locations like a parser game ("The Blackpine Crossroads", "Gate of Ashford Keep"). Offer overland exits AND entrances to nearby places. Reward exploration and clever, specific actions. Introduce wildlife, bandits, beasts, the occasional powerful BOSS, hidden treasure CHESTS, hermits and merchants.${seed}
 PERIL: ${peril}
 
-LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". You MAY narrate specific treasure flavour, but the game generates the actual items.
-COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow and let it wound or kill the foe heavily. Any other number is an ordinary strike. Honour the dice result you are given; never invent your own.
+LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". You MAY narrate treasure flavour, but the game generates the actual items.
+COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given.
 
 Reply with ONLY one JSON object, no markdown:
 {
   "narration": "what the player perceives",
   "location": "short location name",
-  "exits": ["ways out"],
-  "hp_delta": 0, "mp_delta": 0, "gold_delta": 0, "score_delta": 0, "depth": 0,
+  "exits": ["ways the player can go, e.g. north, the river road, enter the keep, into the cave"],
+  "hp_delta": 0, "mp_delta": 0, "gold_delta": 0, "score_delta": 0,
+  "depth": 0,                // how far the player has JOURNEYED (distinct areas reached); rises as they reach new places; used to scale danger & loot
   "in_combat": false,
   "chest": false,            // true if a treasure chest is opened/looted this turn
-  "boss_present": false,     // true if a boss is in the scene
+  "boss_present": false,     // true if a powerful boss is in the scene
+  "boss_name": "",           // the boss's name when one is present (e.g. "Grakka the Bonebreaker")
   "boss_defeated": false,    // true the turn a boss dies (game grants big loot)
   "game_over": false, "ending": ""
 }
@@ -875,13 +968,14 @@ worn: ${worn}
 satchel: ${bag}
 turn: ${G.turn}
 
-PLAYER COMMAND: ${cmd==='__begin__'?'(Begin. Open at the threshold of the realm — set the scene and first choices.)':cmd}`;
+PLAYER COMMAND: ${cmd==='__begin__'?'(Begin the adventure out in the open land — e.g. a forked road at the edge of a forest, a village outskirts, or a windswept moor with a distant keep. Set the scene and the directions/places the player can head toward.)':cmd}`;
 }
 async function aiTurn(cmd){
   G.busy=true; G.turn++;
   // d6 critical-strike roll on attacks: a 6 = critical hit (5x weapon damage)
   let dice='';
   if(cmd!=='__begin__' && /attack|strike|fight|hit|slay|stab|kill|swing|cast|shoot|fire/i.test(cmd)){
+    weaponSfx();   // weapon-appropriate swing/zap
     const roll=ri(1,6);
     if(roll===6){ dice=' [DICE ROLL = 6: CRITICAL HIT. The player\'s weapon strikes for 5x (five times) its normal damage this turn — narrate a devastating critical blow and apply heavy damage / likely a kill to the foe accordingly.]';
       line('🎲 <span class="boss">You roll a 6 — CRITICAL STRIKE! (×5 damage)</span>','boss'); }
@@ -915,67 +1009,76 @@ async function applyTurn(raw,cmd){
   G.history.push({role:'user',content:stateBlock(cmd)}); G.history.push({role:'assistant',content:JSON.stringify(o)});
   if(typeof o.location==='string'&&o.location) G.location=o.location;
   if(Array.isArray(o.exits)) G.exits=o.exits;
-  if(Number.isFinite(o.hp_delta)) G.hp=Math.min(G.maxHp,G.hp+o.hp_delta);
+  if(Number.isFinite(o.hp_delta)){ G.hp=Math.min(G.maxHp,G.hp+o.hp_delta); if(o.hp_delta<0) SFX.play('hurt'); }
   if(Number.isFinite(o.mp_delta)) G.mp=Math.max(0,Math.min(G.maxMp,G.mp+o.mp_delta));
-  if(Number.isFinite(o.gold_delta)) G.gold=Math.max(0,G.gold+o.gold_delta);
+  if(Number.isFinite(o.gold_delta)){ if(o.gold_delta>0) SFX.play('gold'); G.gold=Math.max(0,G.gold+o.gold_delta); }
   if(Number.isFinite(o.score_delta)) G.score+=o.score_delta;
   if(Number.isFinite(o.depth)) G.depth=Math.max(G.depth,o.depth);
   if(G.buffTurns>0 && /attack|strike|fight|hit|slay|kill|cast/i.test(cmd)) G.buffTurns--;
+  // boss appears — banner + stinger (only on a new boss)
+  if(o.boss_present){ const bn=(o.boss_name||'A mighty foe'); if(_bossShown!==bn){ _bossShown=bn; showBossBanner(bn.toUpperCase()); } }
+  else { _bossShown=null; }
   hud();   // refresh stats/location immediately, before the text types out
   line(`<span class="room-name">${esc(G.location)}</span>`);
   await typeLine(o.narration||'', o.hp_delta<0?'dmg':'');
+  if(TTS.on) TTS.speak(o.narration||'');
   // loot & bosses (game-controlled)
   if(o.boss_defeated){ const sc=120+G.depth*45; G.score+=sc; line(`<span class="boss">The boss falls! +${sc} score.</span>`,'boss'); grantLoot(genLoot('boss',G.depth)); }
-  else if(o.chest){ grantLoot(genLoot('chest',G.depth)); }
+  else if(o.chest){ SFX.play('chest'); setTimeout(()=>grantLoot(genLoot('chest',G.depth)),650); }
   recompute(); hud();
   if(G.hp<=0||o.game_over===true){ endGame(o.ending||(G.hp<=0?'You have died. The realm closes over you.':'Your tale ends here.')); }
 }
-function endGame(msg){ G.over=true; clearSave(); line(esc(msg),'death'); line(`Final score: ${G.score} · Depth ${G.depth} · Gold ${G.gold}`,'sys'); line('Reload to forge a new realm.','sys'); $('#cmd').disabled=true; }
+function endGame(msg){ G.over=true; clearSave(); line(esc(msg),'death'); line(`Final score: ${G.score} · Travels ${G.depth} · Gold ${G.gold}`,'sys'); line('Reload to forge a new realm.','sys'); $('#cmd').disabled=true; }
 
 // =====================================================================
 //  OFFLINE DEMO — exercises every system (loot, rarity, bosses, potions,
 //  armour, equipment) with no key. The live game is far richer.
 // =====================================================================
-const D={adj:['Sunken','Mossy','Shattered','Whispering','Gilded','Forgotten','Ashen','Drowned','Vaulted','Cobwebbed'],
-  place:['Nave','Crypt','Gallery','Cistern','Armoury','Rookery','Stair','Cloister','Vault','Hollow'],
-  detail:['Water drips from unseen heights and echoes like distant bells.','Faded murals show kings whose names have crumbled away.','A cold draught carries the smell of iron and old smoke.','Veins of pale fungus light the stones with a sickly glow.','Bones lie heaped in a corner, picked clean and politely arranged.'],
-  foe:['a hunched goblin','a pallid ghoul','a giant cave-spider','a rattling skeleton'],
-  boss:['the Bonewrought Tyrant','the Gravecrown Lich','the Sunless Ogre-King','the Wyrm of Ash']};
+const D={adj:['Blackpine','Misty','Windswept','Thornwood','Greymoor','Old','Briar','Sunlit','Ruined','Hollow'],
+  place:['Crossroads','Forest Path','Open Moor','Riverside','Green Hill','Wildflower Meadow','Village Edge','Old Stone Bridge','Standing Stones','Hilltop Watch'],
+  enter:['A Moss-grown Cave Mouth','The Gates of a Crumbling Keep','A Roadside Tavern','An Abandoned Watchtower','A Barrow Beneath the Hill',"A Hermit's Hut"],
+  detail:['Birdsong drifts through the trees and the wind smells of coming rain.','A weathered signpost points toward distant rooftops.','Wildflowers nod over the ruins of an old boundary wall.','Smoke rises from a chimney somewhere beyond the treeline.','Crows watch you from a leaning, lightning-split oak.'],
+  foe:['a snarling wolf','a ragged bandit','a wild boar','a lurching ghoul','a giant forest spider'],
+  boss:['Grakka the Bonebreaker','the Briar Witch','Sir Mordrec the Fallen','the Great Stag-Wyrm']};
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 async function demoStart(){
-  line(`<span class="room-name">The Threshold</span>`);
-  await typeLine('You stand at a broken archway where the living world ends and the realm below begins. Cold air rises from a stair descending into dark, and somewhere far down, something vast turns in its sleep.');
-  G.location='The Threshold'; G.exits=['down','south']; hud();
-  line('This is the offline demo: try <span class="sys">go down · open chest · attack · drink a potion · rest</span>, and click items in your Satchel to equip them. The live game invents far richer realms.','sys');
+  line(`<span class="room-name">Blackpine Crossroads</span>`);
+  await typeLine('You stand where two muddy roads cross at the edge of a dark pine forest. A weathered signpost creaks in the wind; smoke rises from a village to the south, and a grey keep looms on the eastern hills.');
+  G.location='Blackpine Crossroads'; G.exits=['north','south','east','west']; hud();
+  line('This is the offline demo: try <span class="sys">go north · enter the cave · open chest · attack · drink a potion · rest</span>, and click items in your Satchel to equip them. The live game invents far richer realms.','sys');
 }
 async function demoTurn(raw){
   G.busy=true;
   try{
   const c=raw.toLowerCase();
-  // movement
-  if(/^(go|move|walk|head)?\s*(down|north|south|east|west|up|in|out|through)/.test(c)||G.exits.some(e=>c.includes(e))){
-    if(G.foe&&G.foe.boss){ line(`${cap(G.foe.name)} blocks your escape!`,'boss'); return; }
-    G.depth += /down|in|through/.test(c)?1:0;
-    const name=`The ${rnd(D.adj)} ${rnd(D.place)}`; G.location=name; G.exits=shuffle(['north','south','east','west','down','up']).slice(0,ri(2,4));
+  // movement / travel across the land
+  if(/\b(north|south|east|west|onward|back)\b/.test(c) || /^(go|move|walk|head|travel|enter|venture|approach|ride)\b/.test(c) || /\b(cave|castle|keep|tavern|tower|barrow|hut|village|forest|gate|bridge|road)\b/.test(c) || G.exits.some(e=>c.includes(e.split(' ')[0]))){
+    if(G.foe&&G.foe.boss){ line(`${cap(G.foe.name)} blocks your path!`,'boss'); return; }
+    G.depth += 1;   // each new area reached counts as travel
+    const entering=/enter|into|inside|cave|castle|keep|tavern|tower|barrow|hut/.test(c);
+    const name = entering ? rnd(D.enter) : `${rnd(D.adj)} ${rnd(D.place)}`;
+    G.location=name; G.exits=shuffle(['north','south','east','west','back the way you came','onward']).slice(0,ri(2,4));
     line(`<span class="room-name">${esc(name)}</span>`);
     let s=rnd(D.detail); const r=Math.random();
     G.score+=2; G.foe=null; G.chestHere=false;
-    if(G.depth>0 && G.depth%5===0 && r<0.7){ G.foe={name:rnd(D.boss),hp:30+G.depth*6,atk:6+G.depth,boss:true}; s+=` A monstrous presence fills the chamber — ${G.foe.name}!`; }
-    else if(r<0.34){ G.foe={name:rnd(D.foe),hp:8+G.depth*2,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} lurches from the shadows.`; }
-    else if(r<0.62){ G.chestHere=true; s+=' A banded treasure chest sits against the far wall.'; }
+    if(G.depth>0 && G.depth%5===0 && r<0.7){ G.foe={name:rnd(D.boss),hp:30+G.depth*6,atk:6+G.depth,boss:true}; s+=` A monstrous presence rises to meet you — ${G.foe.name}!`; showBossBanner(G.foe.name.toUpperCase()); }
+    else if(r<0.34){ G.foe={name:rnd(D.foe),hp:8+G.depth*2,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} springs from cover.`; }
+    else if(r<0.62){ G.chestHere=true; s+=' A banded travelling-chest lies half-hidden in the grass.'; }
     hud(); await typeLine(s, G.foe?'dmg':'good');
+    if(TTS.on) TTS.speak(s);
     const ev=pickEvent(G.location); if(ev && !G.over) await fireEventDemo(ev);
     return;
   }
   // open chest
   if(/(open|loot|unlock).*(chest|box)|^open$|chest/.test(c)){
-    if(G.chestHere){ line('You heave the lid open.','good'); grantLoot(genLoot('chest',G.depth)); G.chestHere=false; hud(); }
+    if(G.chestHere){ SFX.play('chest'); line('You heave the lid open.','good'); setTimeout(()=>{grantLoot(genLoot('chest',G.depth)); hud();},600); G.chestHere=false; }
     else line('There is no chest here.','sys');
     return;
   }
   // attack
   if(/(attack|hit|fight|kill|strike|stab|slay)/.test(c)){
     if(!G.foe){ line('Nothing here means you harm — yet.','sys'); return; }
+    weaponSfx();
     const roll=ri(1,6), crit=(roll===6);          // d6 — a 6 is a critical strike (x5)
     let dmg=ri(1,3)+G.atk+(G.buffTurns>0?G.dmgBuff:0);
     if(crit) dmg*=5;
@@ -986,7 +1089,7 @@ async function demoTurn(raw){
       line(`${die}You hit for ${dmg}. ${cap(G.foe.name)} falls! <span class="${boss?'boss':'good'}">+${sc} score.</span>`, boss?'boss':'good');
       grantLoot(genLoot(boss?'boss':'normal',G.depth)); G.foe=null; hud(); return;
     }
-    const back=Math.max(1, ri(1,G.foe.atk)-Math.floor(G.def/2)); G.hp=Math.max(0,G.hp-back);
+    const back=Math.max(1, ri(1,G.foe.atk)-Math.floor(G.def/2)); G.hp=Math.max(0,G.hp-back); SFX.play('hurt');
     line(`${die}You hit for ${dmg}; ${G.foe.name} (${Math.max(0,G.foe.hp)} hp) rakes you for ${back}.`, crit?'good':'dmg'); hud();
     if(G.hp<=0) endGame('Your vitality fails. The realm claims another nameless adventurer.');
     return;
@@ -1004,7 +1107,7 @@ async function demoTurn(raw){
   if(/(look|examine|inspect|search)/.test(c)){
     line(rnd(D.detail)+(G.chestHere?' A treasure chest waits here.':'')+(G.foe?` ${cap(G.foe.name)} watches you.`:''),''); return;
   }
-  line('The demo understands: <span class="sys">go down · open chest · attack · drink a potion · rest · look</span>. The live game understands anything.','sys');
+  line('The demo understands: <span class="sys">go north · enter the cave · open chest · attack · drink a potion · rest · look</span>. The live game understands anything.','sys');
   } finally { G.busy=false; $('#cmd').focus(); }
 }
 function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
