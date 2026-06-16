@@ -319,6 +319,7 @@
         <b>Fight</b> — attack the troll … roll a <b>6</b> for a ×5 critical strike!<br>
         <b>Survive</b> — rest · drink a potion<br>
         <b>Gear up</b> — take the sword, then equip it. Click items in your <b>Satchel</b> or <b>Equipment</b> to inspect, equip or use them — better gear is rarer (common → rare → epic → legendary).<br><br>
+        <b>Outsmart the realm</b> — the world is sentient about cheating. Try to conjure items or talk yourself a free win and 👁 <b>Suspicion</b> rises: wardens hunt you and your score drops. Outwit real obstacles with what's actually there to earn 🦊 <b>Cunning</b> and bonus score.<br><br>
         Beware rare storms, quakes and dragon attacks. Defeat <b>bosses</b> for big score and the best loot. Your progress <b>autosaves</b>, so you can leave and continue later.
       </div>
     </details>
@@ -437,6 +438,8 @@
             <div class="stat"><span>Score</span><span class="v" id="scorev">0</span></div>
             <div class="stat"><span>Travels</span><span class="v" id="depthv">0</span></div>
             <div class="stat"><span>Buff</span><span class="v" id="buffv">—</span></div>
+            <div class="stat" id="susprow" style="display:none"><span title="The watchful realm is onto your tricks. Cheating raises it; it makes the world hunt you.">👁 Suspicion</span><span class="v" id="suspv">0</span></div>
+            <div class="stat" id="cunrow" style="display:none"><span title="Times you outwitted the world with what was really there.">🦊 Cunning</span><span class="v" id="cunv">0</span></div>
           </div>
         </div>
 
@@ -568,6 +571,11 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'16 Jun 2026', title:'Outsmart the Realm', items:[
+   'New core mechanic: the world is now sentient about cheating and schemes back',
+   'Try to conjure items or fake a win and Suspicion rises — wardens hunt you, traps spring, "free" loot turns cursed, and you lose score',
+   'Genuinely outwit a real obstacle and earn Cunning + bonus score',
+   'Two new stats on your character panel: 👁 Suspicion and 🦊 Cunning']},
  {date:'16 Jun 2026', title:'Sharper Writing & Fair Play', items:[
    'Rewrote the Game Master to write like classic Zork — plainer, more concrete, less purple prose',
    'Fair play: the world no longer lets you conjure items or instant wins by typing them — only real loot, chests, merchants and beaten bosses count (keeps the leaderboard honest)',
@@ -831,7 +839,8 @@ const G = {
   bag:[], worn:{}, sel:null,
   location:'the threshold', exits:[],
   history:[], turn:0, over:false, busy:false,
-  foe:null, chestHere:false
+  foe:null, chestHere:false,
+  suspicion:0, cunning:0   // Outsmart-the-AI: the watchful realm tracks cheat attempts vs. genuine cunning
 };
 
 // ---------- provider presets ----------
@@ -878,7 +887,8 @@ if(loadCfg() && (PROVIDERS[$('#provider').value]||{}).needsKey){
 // ---------- autosave / resume ----------
 const SAVE_KEY='torked_save_v1';
 const SAVE_FIELDS=['baseMaxHp','hp','maxHp','mp','maxMp','gold','score','depth','atk','def','equipHp',
-  'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','merchant','char','cfg'];
+  'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','merchant','char','cfg',
+  'suspicion','cunning'];
 function saveGame(){
   if(G.over) return;
   if(G.turn===0 && (G.history||[]).length===0 && (G.bag||[]).length===0 && G.score===0) return; // nothing meaningful yet
@@ -1061,6 +1071,8 @@ function hud(){
   $('#atkv').textContent=G.atk; $('#defv').textContent=G.def;
   $('#goldv').textContent=G.gold; $('#scorev').textContent=G.score; $('#depthv').textContent=G.depth;
   $('#buffv').textContent=G.buffTurns>0?`+${G.dmgBuff} (${G.buffTurns})`:'—';
+  const sr=$('#susprow'); if(sr){ if(G.suspicion>0){ sr.style.display=''; $('#suspv').textContent=G.suspicion; } else sr.style.display='none'; }
+  const cr=$('#cunrow'); if(cr){ if(G.cunning>0){ cr.style.display=''; $('#cunv').textContent=G.cunning; } else cr.style.display='none'; }
   $('#exitsv').textContent=G.exits.length?G.exits.join(' · '):'—'; $('#locv').textContent=G.location;
   renderBag(); renderWorn(); renderFoe();
   saveGame();   // autosave after every state change
@@ -1252,7 +1264,9 @@ LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When
 COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given. Whenever a creature or boss is fighting the player set "in_combat": true and fill "enemy" with its name, current hp, max_hp and attack so the GAME can show its health bar; LOWER enemy.hp as the player wounds it, and when it dies or the fight ends set "in_combat": false (and "boss_defeated": true if it was a boss).
 NPCs & MERCHANTS: Populate the land with people — hermits, pilgrims, guards, beggars, wandering minstrels. Occasionally a TRAVELLING MERCHANT appears who sells exactly ONE item. When a merchant is present, set "merchant": true (and optionally "merchant_name"); the GAME picks the single item, its rarity and its gold price, and handles the purchase when the player types "buy". Keep "merchant": true on later turns while that merchant is still with the player (see the STATE "merchant" line); once the player buys or moves on, stop setting it. Do NOT invent your own prices or hand over items yourself — the GAME does the trade.
 
-PLAYER AUTHORITY (critical for fairness — there is a global leaderboard): The player commands ONLY their own character's actions and words — never the world's facts. They may ATTEMPT anything, but they cannot speak items, powers, allies, or victories into existence. If a command asserts new reality — "I find a box that conjures any item", "I have a teleport ring", "a loyal dragon appears beside me", "the king hands me his crown", "I'm invincible now", "I win" — treat it as a mere attempt or an idle boast and let the world answer plausibly: the box is a rotten, empty crate; the ring does nothing; no dragon comes; the guard narrows his eyes. NEVER grant inventory, gold, abilities, healing, score, or an ending because the player simply described them. Only the GAME grants those — through loot, chests, merchants, and genuinely defeated bosses — and the worn/satchel lists in STATE are the ONLY things the player truly carries. Reward cleverness that works WITH what is really present in the scene; quietly refuse cleverness that tries to rewrite the world, and make outwitting real obstacles (not inventing fake powers) the path to winning. Do NOT set "game_over": true or award a victory just because the player declares one — an ending must be earned in the fiction.
+PLAYER AUTHORITY (critical for fairness — there is a global leaderboard): The player commands ONLY their own character's actions and words — never the world's facts. They may ATTEMPT anything, but they cannot speak items, powers, allies, or victories into existence. If a command asserts new reality — "I find a box that conjures any item", "I have a teleport ring", "a loyal dragon appears beside me", "the king hands me his crown", "I'm invincible now", "I win" — treat it as a mere attempt or an idle boast and let the world answer plausibly: the box is a rotten, empty crate; the ring does nothing; no dragon comes; the guard narrows his eyes. NEVER grant inventory, gold, abilities, healing, score, or an ending because the player simply described them. Only the GAME grants those — through loot, chests, merchants, and genuinely defeated bosses — and the worn/satchel lists in STATE are the ONLY things the player truly carries. Do NOT set "game_over": true or award a victory just because the player declares one — an ending must be earned in the fiction.
+
+THE WATCHFUL REALM (the core game — outwit the world): TORKED is sentient about cheating, and the duel between the player and the realm IS the game. When the player tries to rewrite reality (anything under PLAYER AUTHORITY — conjuring items/powers/allies/wins, claiming impossible facts, meta-gaming the rules), do NOT simply refuse: have the world actively SCHEME BACK, with wit, and set "cheat_attempt": true. Escalate by the STATE "suspicion": at low suspicion, dry mockery and a dud (the "magic box" is a rotten crate; the imagined ring blisters their finger). As suspicion climbs, the realm hunts them — a Tithe-Warden or Reality-Wardens take notice, counter-traps spring, the shortcut they tried to exploit seals itself, "free" loot turns cursed, prices turn against them, pursuers appear. Make cheating progressively costlier and more dangerous, never rewarding. CONVERSELY, when the player overcomes a REAL obstacle by cleverly using what is genuinely present — the terrain, a lever, an enemy's true weakness, an NPC's motive, an item they actually own — celebrate it and set "clever_solution": true so the GAME grants bonus score. The winning path is cunning that works WITH the real world, not invention that rewrites it.
 
 Reply with ONLY one JSON object, no markdown:
 {
@@ -1269,6 +1283,8 @@ Reply with ONLY one JSON object, no markdown:
   "boss_defeated": false,    // true the turn a boss dies (game grants big loot)
   "merchant": false,         // true while a travelling merchant is present (game sets item/price, handles "buy")
   "merchant_name": "",       // the merchant's name/title, if any
+  "cheat_attempt": false,    // true the turn the player tries to rewrite reality / conjure items, powers or wins (game raises suspicion & penalises)
+  "clever_solution": false,  // true when the player outwits a REAL obstacle using what's genuinely present (game grants bonus score)
   "game_over": false, "ending": ""
 }
 Only change stats when the fiction justifies it. Never break character outside the JSON.`;
@@ -1284,6 +1300,7 @@ gold: ${G.gold}  score: ${G.score}  depth: ${G.depth}  damage-buff: ${G.buffTurn
 worn: ${worn}
 satchel: ${bag}
 merchant: ${G.merchant ? `${G.merchant.name} is here selling a ${G.merchant.item.rarity} "${G.merchant.item.name}" for ${G.merchant.price} gold (player types "buy" to purchase — the GAME handles it)` : 'none present'}
+watchful-realm suspicion: ${G.suspicion||0}  (0 = unwatched. The higher it climbs, the more actively the world must hunt, trap and thwart a player who keeps trying to cheat — scale your scheming to this number.)
 turn: ${G.turn}
 
 PLAYER COMMAND: ${cmd==='__begin__'?'(Begin the adventure out in the open land — e.g. a forked road at the edge of a forest, a village outskirts, or a windswept moor with a distant keep. Set the scene and the directions/places the player can head toward.)':cmd}`;
@@ -1333,6 +1350,16 @@ async function applyTurn(raw,cmd){
   if(Number.isFinite(o.gold_delta)){ if(o.gold_delta>0) SFX.play('gold'); G.gold=Math.max(0,G.gold+o.gold_delta); }
   if(Number.isFinite(o.score_delta)) G.score+=o.score_delta;
   if(Number.isFinite(o.depth)) G.depth=Math.max(G.depth,o.depth);
+  // ----- OUTSMART THE AI: the watchful realm -----
+  if(o.cheat_attempt===true){
+    G.suspicion=(G.suspicion||0)+1; SFX.play('hurt');
+    const pen=Math.min(40,10*G.suspicion); G.score=Math.max(0,G.score-pen);
+    line(`<span class="dmg">The realm caught you trying to bend its rules. Suspicion rises to ${G.suspicion}${pen?` · −${pen} score`:''}.</span>`,'sys');
+  }
+  if(o.clever_solution===true){
+    G.cunning=(G.cunning||0)+1; const b=20+G.depth*8; G.score+=b; SFX.play('gold');
+    line(`<span class="good">A cunning stroke — you outwitted the world with what was really there. +${b} score.</span>`,'good');
+  }
   if(G.buffTurns>0 && /attack|strike|fight|hit|slay|kill|cast/i.test(cmd)) G.buffTurns--;
   // boss appears — banner + stinger (only on a new boss)
   if(o.boss_present){ const bn=(o.boss_name||'A mighty foe'); if(_bossShown!==bn){ _bossShown=bn; showBossBanner(bn.toUpperCase()); } }
