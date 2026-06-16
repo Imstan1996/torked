@@ -1002,7 +1002,7 @@ const HAIR_TINTS=[
 const AV_PAINTS=[{id:'none',label:'None'},{id:'woad',label:'Woad'},{id:'vine',label:'Vine'}];
 let CH={name:'',base:'mfair',hair:'short',tint:0,paint:'none'};
 function avBaseGender(id){ const b=AV_BASES.find(x=>x.id===id); return b?b.gender:'Other'; }
-const AV_V='4';   // bump when avatar art changes, to bypass browser cache
+const AV_V='5';   // bump when avatar art changes, to bypass browser cache
 function avatarHTML(c,size){
   c=c||CH; const s=size||160;
   const base=c.base||'mfair', hair=c.hair||'bald', paint=c.paint||'none';
