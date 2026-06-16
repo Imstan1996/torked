@@ -39,6 +39,13 @@
     background:linear-gradient(#f4cf6b,#d8a93a);border:1px solid #8a6a1e;border-radius:8px;
     padding:8px 13px;box-shadow:0 2px 0 #7a5c18, 0 6px 16px rgba(216,169,58,.25);transition:.15s}
   .coffee:hover{transform:translateY(-1px);box-shadow:0 3px 0 #7a5c18,0 10px 22px rgba(216,169,58,.35)}
+  /* follow (X / Twitter) button */
+  .follow{display:inline-flex;align-items:center;gap:7px;text-decoration:none;cursor:pointer;
+    font-family:"Cinzel",serif;font-size:13px;letter-spacing:.5px;color:#f4e9cf;
+    background:linear-gradient(#23252b,#15171b);border:1px solid #3a3d44;border-radius:8px;
+    padding:8px 13px;box-shadow:0 2px 0 #0c0d10, 0 6px 16px rgba(0,0,0,.3);transition:.15s;margin-left:8px}
+  .follow:hover{transform:translateY(-1px);box-shadow:0 3px 0 #0c0d10,0 10px 22px rgba(0,0,0,.4);border-color:#5a5e66}
+  .follow svg{width:14px;height:14px;fill:currentColor}
 
   /* ---------- setup ---------- */
   #setup,#onboard{margin:auto;max-width:660px;text-align:center;background:linear-gradient(180deg,var(--panel2),var(--panel));
@@ -316,7 +323,7 @@
       </div>
     </details>
 
-    <div class="setupfoot"><a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a></div>
+    <div class="setupfoot"><a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a><a class="follow" href="https://x.com/GrowWithStan" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Follow @GrowWithStan</a></div>
   </section>
 
   <!-- ============ SETUP (advanced) ============ -->
@@ -372,7 +379,7 @@
 
     <div class="hint" id="providerHint"></div>
     <div class="setupfoot">
-      <a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a>
+      <a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a><a class="follow" href="https://x.com/GrowWithStan" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Follow @GrowWithStan</a>
     </div>
   </section>
 
@@ -407,7 +414,7 @@
         <span class="mini" id="modeTag"></span>
         <button id="sfxToggle" class="iconbtn on" title="Sound effects on/off">🔊</button>
         <button id="ttsToggle" class="iconbtn" title="Read narration aloud">🗣️</button>
-        <a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a>
+        <a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a><a class="follow" href="https://x.com/GrowWithStan" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Follow @GrowWithStan</a>
       </div>
     </div>
     <div class="stage">
@@ -561,6 +568,11 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'16 Jun 2026', title:'Sharper Writing & Fair Play', items:[
+   'Rewrote the Game Master to write like classic Zork — plainer, more concrete, less purple prose',
+   'Fair play: the world no longer lets you conjure items or instant wins by typing them — only real loot, chests, merchants and beaten bosses count (keeps the leaderboard honest)',
+   'Outwitting real obstacles is now the path to victory, not inventing fake powers',
+   'Added a Follow @GrowWithStan link']},
  {date:'15 Jun 2026', title:'Heroes & Leaderboards', items:[
    'Create your hero — name, gender, hair style & colour, and garb, with a live portrait',
    'Live "players online" counter and a global Hall of Heroes leaderboard',
@@ -1233,12 +1245,14 @@ function systemPrompt(){
   return `You are the GAME MASTER of TORKED, a medieval-fantasy text adventure in the spirit of Zork — dry wit, vivid second-person prose, monsters and magic. Keep the world CONSISTENT using the STATE block each turn.
 
 WORLD: This is an open medieval LAND, not an underground dungeon. The player journeys OVERLAND — through forests, moors, roads, rivers, fields, villages, markets, ruins, coastlines and hills. They travel by direction (north/south/east/west) and along roads/paths. They may ENTER discrete places when it fits the scene — a cave, a castle, a watchtower, a crypt, a tavern, a mine — and later leave them again. Do NOT make the game an endless descent: only "go down"/descend when there is a REAL, specific place to enter (a castle cellar, a mine, a barrow). Most movement is across the surface and into/out of named locations.
-STYLE: Address the player as "you". 2–5 sentences of atmospheric narration. Name locations like a parser game ("The Blackpine Crossroads", "Gate of Ashford Keep"). Offer overland exits AND entrances to nearby places. Reward exploration and clever, specific actions. Introduce wildlife, bandits, beasts, the occasional powerful BOSS, hidden treasure CHESTS, hermits and merchants.${seed}${charDesc()}
+STYLE: Address the player as "you". Write like classic Zork: plain, concrete, and a touch dry — not florid. 2–4 sentences. Lead with what is physically THERE (what you see, hear, smell) before any mood. Use specific nouns and strong verbs; do NOT stack adjectives, reach for grand or ornate vocabulary, or pad with flowery filler. Vary sentence length so it never reads as purple prose. Understatement and dry wit beat melodrama. Name locations like a parser game ("The Blackpine Crossroads", "Gate of Ashford Keep"). Offer overland exits AND entrances to nearby places. Reward exploration and clever, specific actions. Introduce wildlife, bandits, beasts, the occasional powerful BOSS, hidden treasure CHESTS, hermits and merchants.${seed}${charDesc()}
 PERIL: ${peril}
 
 LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". You MAY narrate treasure flavour, but the game generates the actual items.
 COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given. Whenever a creature or boss is fighting the player set "in_combat": true and fill "enemy" with its name, current hp, max_hp and attack so the GAME can show its health bar; LOWER enemy.hp as the player wounds it, and when it dies or the fight ends set "in_combat": false (and "boss_defeated": true if it was a boss).
 NPCs & MERCHANTS: Populate the land with people — hermits, pilgrims, guards, beggars, wandering minstrels. Occasionally a TRAVELLING MERCHANT appears who sells exactly ONE item. When a merchant is present, set "merchant": true (and optionally "merchant_name"); the GAME picks the single item, its rarity and its gold price, and handles the purchase when the player types "buy". Keep "merchant": true on later turns while that merchant is still with the player (see the STATE "merchant" line); once the player buys or moves on, stop setting it. Do NOT invent your own prices or hand over items yourself — the GAME does the trade.
+
+PLAYER AUTHORITY (critical for fairness — there is a global leaderboard): The player commands ONLY their own character's actions and words — never the world's facts. They may ATTEMPT anything, but they cannot speak items, powers, allies, or victories into existence. If a command asserts new reality — "I find a box that conjures any item", "I have a teleport ring", "a loyal dragon appears beside me", "the king hands me his crown", "I'm invincible now", "I win" — treat it as a mere attempt or an idle boast and let the world answer plausibly: the box is a rotten, empty crate; the ring does nothing; no dragon comes; the guard narrows his eyes. NEVER grant inventory, gold, abilities, healing, score, or an ending because the player simply described them. Only the GAME grants those — through loot, chests, merchants, and genuinely defeated bosses — and the worn/satchel lists in STATE are the ONLY things the player truly carries. Reward cleverness that works WITH what is really present in the scene; quietly refuse cleverness that tries to rewrite the world, and make outwitting real obstacles (not inventing fake powers) the path to winning. Do NOT set "game_over": true or award a victory just because the player declares one — an ending must be earned in the fiction.
 
 Reply with ONLY one JSON object, no markdown:
 {
