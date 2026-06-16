@@ -1024,7 +1024,12 @@ function ccBuild(){
 }
 function showCharCreate(){
   $('#onboard').style.display='none'; $('#setup').style.display='none';
-  try{ const saved=JSON.parse(localStorage.getItem('torked_char')||'null'); if(saved){ CH=Object.assign({name:'',base:'mfair',hair:'short',tint:0,paint:'none'},saved); if(!AV_BASES.some(b=>b.id===CH.base)) CH.base='mfair'; } }catch(e){}
+  try{ const saved=JSON.parse(localStorage.getItem('torked_char')||'null'); if(saved){ CH=Object.assign({name:'',base:'mfair',hair:'short',tint:0,paint:'none'},saved); } }catch(e){}
+  // sanitise (older saves used a different shape — keep only valid ids)
+  if(!AV_BASES.some(b=>b.id===CH.base)) CH.base='mfair';
+  if(!AV_HAIRS.some(h=>h.id===CH.hair)) CH.hair='short';
+  if(!AV_PAINTS.some(p=>p.id===CH.paint)) CH.paint='none';
+  if(typeof CH.tint!=='number'||CH.tint<0||CH.tint>=HAIR_TINTS.length) CH.tint=0;
   $('#ccName').value=CH.name||'';
   ccBuild(); ccRender();
   $('#charCreate').style.display='block'; $('#ccName').focus();
