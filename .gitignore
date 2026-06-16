@@ -3,4 +3,6 @@ __pycache__/
 .DS_Store
 ChatGPT Image*.png
 torked-icons.png
+torked-avatars.png
+_avatar_preview*.png
 threshold-save.json

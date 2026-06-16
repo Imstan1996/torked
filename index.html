@@ -127,16 +127,28 @@
     border:1px solid var(--line);border-radius:12px;padding:30px 30px;box-shadow:0 18px 50px var(--shadow);text-align:center}
   .cc-title{font-family:"Cinzel",serif;font-size:34px;letter-spacing:4px;color:var(--gold-bright);margin:0 0 18px;text-shadow:0 2px 0 #000}
   .cc-wrap{display:flex;gap:20px;text-align:left;align-items:flex-start}
-  .cc-avatar{flex:none;width:160px;height:160px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#100c06}
+  .cc-avatar{flex:none;width:180px;height:180px;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    background:radial-gradient(circle at 50% 38%, #211913 0%, #120d07 72%)}
   .cc-avatar svg{width:100%;height:100%}
+  /* layered image avatar */
+  .av-stack{position:relative;display:inline-block;vertical-align:middle}
+  .av-stack img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
   .cc-fields{flex:1;min-width:0}
   .cc-opts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
   .cc-opts button{flex:none;font-family:"IM Fell English",serif;font-size:13px;letter-spacing:.3px;text-transform:none;
     padding:6px 12px;border-radius:16px;border:1px solid var(--line);background:#120e07;color:var(--ink-dim);cursor:pointer}
   .cc-opts button.sel{border-color:var(--gold);color:var(--gold-bright);background:#251a09}
+  /* appearance/base thumbnails */
+  .cc-bases{gap:8px}
+  .cc-bases button.cc-base{padding:3px;border-radius:10px;width:50px;height:50px;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 38%, #211913 0%, #120d07 75%);overflow:hidden}
+  .cc-bases button.cc-base.sel{border-color:var(--gold-bright);box-shadow:0 0 8px rgba(216,169,58,.45)}
   .cc-swatches{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:4px}
   .cc-swatches .sw{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);cursor:pointer}
   .cc-swatches .sw.sel{border-color:var(--gold-bright);box-shadow:0 0 8px rgba(216,169,58,.5)}
+  .cc-swatches .sw-lbl{font-family:"IM Fell English",serif;font-size:12px;padding:5px 11px;border-radius:14px;
+    border:1px solid var(--line);background:#120e07;color:var(--ink-dim);cursor:pointer}
+  .cc-swatches .sw-lbl.sel{border-color:var(--gold);color:var(--gold-bright);background:#251a09}
   #charCreate .btns{margin-top:20px}
   /* profile card in sidebar */
   .profile{display:flex;align-items:center;gap:11px;padding:10px;margin-bottom:14px;border:1px solid var(--line);
@@ -392,10 +404,10 @@
       <div class="cc-fields">
         <label for="ccName">Name</label>
         <input id="ccName" type="text" maxlength="18" placeholder="e.g. Ayla of Blackpine" autocomplete="off" />
-        <label>Gender</label><div class="cc-opts" id="ccGender"></div>
+        <label>Appearance</label><div class="cc-opts cc-bases" id="ccGender"></div>
         <label>Hair style</label><div class="cc-opts" id="ccHair"></div>
         <label>Hair colour</label><div class="cc-swatches" id="ccColour"></div>
-        <label>Garb</label><div class="cc-opts" id="ccGarb"></div>
+        <label>Face paint</label><div class="cc-opts" id="ccGarb"></div>
       </div>
     </div>
     <div class="btns">
@@ -571,6 +583,10 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'16 Jun 2026', title:'A New Face', items:[
+   'Brand-new character creator with hand-generated flat-vector portraits',
+   'Choose your appearance (5 skin tones & faces), hairstyle (6 incl. bald) with 5 hair colours, and optional face paint',
+   'You now begin every quest unarmed and empty-handed — every weapon and piece of armour must be found or earned']},
  {date:'16 Jun 2026', title:'Outsmart the Realm', items:[
    'New core mechanic: the world is now sentient about cheating and schemes back',
    'Try to conjure items or fake a win and Suspicion rises — wardens hunt you, traps spring, "free" loot turns cursed, and you lose score',
@@ -962,49 +978,62 @@ $('#demoBtn').addEventListener('click',()=>{
 });
 
 // ================= CHARACTER CREATION =================
-const HAIR_STYLES=['Short','Long','Ponytail','Braided','Mohawk','Hooded','Bald'];
-const HAIR_COLOURS=[['Black','#1c1c1f'],['Brown','#5a3a1f'],['Auburn','#7a2f18'],['Blonde','#d8b24c'],['Ginger','#c8521f'],['Silver','#b9bcc2'],['White','#e9e4d6'],['Raven','#10101a']];
-const GARBS=[['Peasant','#6b5a3a'],['Knight','#7b7e87'],['Mage','#3c3c80'],['Ranger','#3c5c34'],['Rogue','#272729'],['Noble','#6c2a5c']];
-const GENDERS=['Male','Female','Other'];
-let CH={name:'',gender:'Male',hair:'Short',colour:HAIR_COLOURS[1],garb:GARBS[1]};
-function avatarSVG(c,size){ c=c||CH; const skin='#cda177';
-  const col=c.colour||c.hairColour||['','#2a1d12']; const hair=col[1]||'#2a1d12'; const garb=(c.garb&&c.garb[1])||'#6b5a3a'; const st=c.hair||'Short';
-  let back='',top='',hood='';
-  if(st==='Long'||st==='Braided') back=`<path d="M28 40 Q28 18 50 18 Q72 18 72 40 L72 80 Q66 70 64 56 Q58 64 50 64 Q42 64 36 56 Q34 70 28 80 Z" fill="${hair}"/>`;
-  else if(st==='Ponytail') back=`<path d="M30 40 Q30 18 50 18 Q70 18 70 42 Q66 36 50 34 Q34 36 30 42 Z" fill="${hair}"/><path d="M67 32 q15 8 9 32 q-3 9 -9 5 q7 -18 -6 -33 z" fill="${hair}"/>`;
-  if(st!=='Bald'&&st!=='Hooded'){ if(st==='Mohawk') top=`<path d="M46 12 L54 12 L52 40 L48 40 Z" fill="${hair}"/>`; else top=`<path d="M30 46 Q30 20 50 20 Q70 20 70 46 Q70 36 60 32 Q55 38 50 38 Q45 38 40 32 Q30 36 30 46 Z" fill="${hair}"/>`; }
-  if(st==='Braided') back+=`<path d="M31 56 q-6 16 -2 30 M69 56 q6 16 2 30" stroke="${hair}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
-  if(st==='Hooded') hood=`<path d="M20 64 Q20 14 50 14 Q80 14 80 64 Q70 46 50 46 Q30 46 20 64 Z" fill="${garb}"/><path d="M20 64 Q20 14 50 14 Q80 14 80 64" fill="none" stroke="#0007" stroke-width="2"/>`;
-  const bg=`<rect width="100" height="100" fill="#120d07"/><circle cx="50" cy="50" r="48" fill="#1c150c"/>`;
-  const shoulders=`<path d="M12 100 Q12 74 50 72 Q88 74 88 100 Z" fill="${garb}"/><path d="M40 76 L50 86 L60 76" fill="none" stroke="#0006" stroke-width="2"/>`;
-  const neck=`<rect x="44" y="58" width="12" height="16" fill="${skin}"/>`;
-  const head=`<ellipse cx="50" cy="44" rx="17" ry="21" fill="${skin}"/><circle cx="33" cy="46" r="3.5" fill="${skin}"/><circle cx="67" cy="46" r="3.5" fill="${skin}"/>`;
-  const face=`<circle cx="43" cy="45" r="2" fill="#241a10"/><circle cx="57" cy="45" r="2" fill="#241a10"/><path d="M44 53 q6 4 12 0" stroke="#6b4a30" stroke-width="1.4" fill="none"/>`;
-  return `<svg viewBox="0 0 100 100" width="${size||100}" height="${size||100}">${bg}${back}${shoulders}${neck}${head}${top}${face}${hood}</svg>`;
+// AI-generated layered avatar art (flat vector style). Each base bakes in skin
+// tone + face + upper body; hair & face-paint layer on top as transparent PNGs.
+const AV_BASES=[
+  {id:'mfair',  gender:'Male',   skin:'fair'},
+  {id:'ffair',  gender:'Female', skin:'fair'},
+  {id:'folive', gender:'Female', skin:'olive'},
+  {id:'fdark',  gender:'Female', skin:'deep'},
+  {id:'mdark',  gender:'Male',   skin:'deep'},
+];
+const AV_HAIRS=[
+  {id:'bald',label:'Bald'},{id:'short',label:'Short'},{id:'long',label:'Long'},
+  {id:'bob',label:'Bob'},{id:'bun',label:'Bun'},{id:'braids',label:'Braids'},
+];
+// hair PNGs are brown; CSS filters recolour them
+const HAIR_TINTS=[
+  ['Brown',''],
+  ['Black','brightness(.4) saturate(.5)'],
+  ['Auburn','hue-rotate(-20deg) saturate(1.6) brightness(.95)'],
+  ['Blonde','sepia(.5) saturate(1.5) brightness(1.45) hue-rotate(-8deg)'],
+  ['Grey','grayscale(1) brightness(1.55)'],
+];
+const AV_PAINTS=[{id:'none',label:'None'},{id:'woad',label:'Woad'},{id:'vine',label:'Vine'}];
+let CH={name:'',base:'mfair',hair:'short',tint:0,paint:'none'};
+function avBaseGender(id){ const b=AV_BASES.find(x=>x.id===id); return b?b.gender:'Other'; }
+function avatarHTML(c,size){
+  c=c||CH; const s=size||160;
+  const base=c.base||'mfair', hair=c.hair||'bald', paint=c.paint||'none';
+  const tint=(HAIR_TINTS[c.tint||0]||HAIR_TINTS[0])[1];
+  let L=`<img src="av-base-${base}.png" alt="">`;
+  if(paint && paint!=='none') L+=`<img src="av-mark-${paint}.png" alt="">`;
+  if(hair && hair!=='bald') L+=`<img src="av-hair-${hair}.png" alt=""${tint?` style="filter:${tint}"`:''}>`;
+  return `<div class="av-stack" style="width:${s}px;height:${s}px">${L}</div>`;
 }
-function ccRender(){ $('#ccAvatar').innerHTML=avatarSVG(CH,160); }
+function ccRender(){ $('#ccAvatar').innerHTML=avatarHTML(CH,180); }
 function ccBuild(){
-  $('#ccGender').innerHTML=GENDERS.map(g=>`<button data-g="${g}" class="${CH.gender===g?'sel':''}">${g}</button>`).join('');
-  $('#ccHair').innerHTML=HAIR_STYLES.map(h=>`<button data-h="${h}" class="${CH.hair===h?'sel':''}">${h}</button>`).join('');
-  $('#ccColour').innerHTML=HAIR_COLOURS.map((c,i)=>`<div class="sw ${CH.colour&&CH.colour[1]===c[1]?'sel':''}" data-c="${i}" title="${c[0]}" style="background:${c[1]}"></div>`).join('');
-  $('#ccGarb').innerHTML=GARBS.map((g,i)=>`<button data-garb="${i}" class="${CH.garb&&CH.garb[1]===g[1]?'sel':''}">${g[0]}</button>`).join('');
-  $('#ccGender').querySelectorAll('button').forEach(b=>b.onclick=()=>{CH.gender=b.dataset.g;ccBuild();ccRender();});
+  $('#ccGender').innerHTML=AV_BASES.map(b=>`<button class="cc-base ${CH.base===b.id?'sel':''}" data-base="${b.id}" title="${b.gender} · ${b.skin} skin">${avatarHTML({base:b.id,hair:'bald',paint:'none'},44)}</button>`).join('');
+  $('#ccHair').innerHTML=AV_HAIRS.map(h=>`<button data-h="${h.id}" class="${CH.hair===h.id?'sel':''}">${h.label}</button>`).join('');
+  $('#ccColour').innerHTML=HAIR_TINTS.map((t,i)=>`<button class="sw-lbl ${(CH.tint||0)===i?'sel':''}" data-t="${i}">${t[0]}</button>`).join('');
+  $('#ccGarb').innerHTML=AV_PAINTS.map(p=>`<button data-p="${p.id}" class="${(CH.paint||'none')===p.id?'sel':''}">${p.label}</button>`).join('');
+  $('#ccGender').querySelectorAll('button').forEach(b=>b.onclick=()=>{CH.base=b.dataset.base;ccBuild();ccRender();});
   $('#ccHair').querySelectorAll('button').forEach(b=>b.onclick=()=>{CH.hair=b.dataset.h;ccBuild();ccRender();});
-  $('#ccColour').querySelectorAll('.sw').forEach(b=>b.onclick=()=>{CH.colour=HAIR_COLOURS[+b.dataset.c];ccBuild();ccRender();});
-  $('#ccGarb').querySelectorAll('button').forEach(b=>b.onclick=()=>{CH.garb=GARBS[+b.dataset.garb];ccBuild();ccRender();});
+  $('#ccColour').querySelectorAll('button').forEach(b=>b.onclick=()=>{CH.tint=+b.dataset.t;ccBuild();ccRender();});
+  $('#ccGarb').querySelectorAll('button').forEach(b=>b.onclick=()=>{CH.paint=b.dataset.p;ccBuild();ccRender();});
 }
 function showCharCreate(){
   $('#onboard').style.display='none'; $('#setup').style.display='none';
-  try{ const saved=JSON.parse(localStorage.getItem('torked_char')||'null'); if(saved) CH=Object.assign(CH,saved); }catch(e){}
+  try{ const saved=JSON.parse(localStorage.getItem('torked_char')||'null'); if(saved){ CH=Object.assign({name:'',base:'mfair',hair:'short',tint:0,paint:'none'},saved); if(!AV_BASES.some(b=>b.id===CH.base)) CH.base='mfair'; } }catch(e){}
   $('#ccName').value=CH.name||'';
   ccBuild(); ccRender();
   $('#charCreate').style.display='block'; $('#ccName').focus();
 }
-$('#ccRandom').addEventListener('click',()=>{ CH.gender=rnd(GENDERS); CH.hair=rnd(HAIR_STYLES); CH.colour=rnd(HAIR_COLOURS); CH.garb=rnd(GARBS); ccBuild(); ccRender(); });
+$('#ccRandom').addEventListener('click',()=>{ CH.base=rnd(AV_BASES).id; CH.hair=rnd(AV_HAIRS).id; CH.tint=Math.floor(Math.random()*HAIR_TINTS.length); CH.paint=rnd(AV_PAINTS).id; ccBuild(); ccRender(); });
 $('#ccStart').addEventListener('click',()=>{
   CH.name=($('#ccName').value.trim())||'Wanderer';
-  G.char={name:CH.name, gender:CH.gender, hair:CH.hair, hairColour:CH.colour, garb:CH.garb};
-  try{ localStorage.setItem('torked_char', JSON.stringify({name:CH.name,gender:CH.gender,hair:CH.hair,colour:CH.colour,garb:CH.garb})); }catch(e){}
+  G.char={name:CH.name, base:CH.base, hair:CH.hair, tint:CH.tint, paint:CH.paint, gender:avBaseGender(CH.base)};
+  try{ localStorage.setItem('torked_char', JSON.stringify({name:CH.name,base:CH.base,hair:CH.hair,tint:CH.tint,paint:CH.paint})); }catch(e){}
   $('#charCreate').style.display='none';
   beginGame();
 });
@@ -1013,10 +1042,16 @@ function renderProfile(){
   const c=G.char, el=$('#profile'); if(!el) return;
   if(!c){ el.style.display='none'; return; }
   el.style.display='flex';
-  el.innerHTML=`<div class="pf-av">${avatarSVG(c,52)}</div><div><div class="pf-name">${esc(c.name||'Adventurer')}</div><div class="pf-sub">${esc(c.gender||'')} · ${esc(c.hairColour?c.hairColour[0]:'')} ${esc((c.hair||'').toLowerCase())} hair · ${esc(c.garb?c.garb[0]:'')}</div></div>`;
+  const hairLbl=(AV_HAIRS.find(h=>h.id===c.hair)||{}).label||'';
+  const tintLbl=(HAIR_TINTS[c.tint||0]||['',''])[0];
+  const sub=c.hair==='bald'?'Bald':`${tintLbl} ${hairLbl.toLowerCase()} hair`;
+  el.innerHTML=`<div class="pf-av">${avatarHTML(c,52)}</div><div><div class="pf-name">${esc(c.name||'Adventurer')}</div><div class="pf-sub">${esc(c.gender||'')} · ${esc(sub)}</div></div>`;
 }
 function charDesc(){ const c=G.char; if(!c) return ''; const g=c.gender; const who=g==='Female'?'a woman':g==='Male'?'a man':'a person'; const pron=g==='Female'?'she/her':g==='Male'?'he/him':'they/them';
-  return `\nTHE PLAYER: ${who} named ${c.name}, with ${(c.hairColour?c.hairColour[0]:'').toLowerCase()} ${(c.hair||'').toLowerCase()} hair, in the garb of a ${(c.garb?c.garb[0]:'traveller').toLowerCase()}. Use ${pron} pronouns and weave their name and look into the tale.`; }
+  const hairLbl=(AV_HAIRS.find(h=>h.id===c.hair)||{}).label||'short'; const tintLbl=(HAIR_TINTS[c.tint||0]||['brown'])[0];
+  const hairTxt=c.hair==='bald'?'a shaved head':`${tintLbl.toLowerCase()} ${hairLbl.toLowerCase()} hair`;
+  const paintTxt=(c.paint&&c.paint!=='none')?`, ${c.paint} markings on the face`:'';
+  return `\nTHE PLAYER: ${who} named ${c.name}, with ${hairTxt}${paintTxt}. They begin the tale UNARMED and owning nothing. Use ${pron} pronouns and weave their name and look into the story.`; }
 $('#cmd').addEventListener('keydown',e=>{ if(e.key==='Enter') submitCommand(); });
 document.querySelectorAll('.quickbar button').forEach(b=>b.addEventListener('click',()=>{
   const c=b.getAttribute('data-c');
@@ -1185,6 +1220,7 @@ function grantLoot(items){
 async function beginGame(){
   SFX.init();   // unlock audio on this user gesture
   $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#charCreate').style.display='none'; $('#game').style.display='flex';
+  if(!G._resumed){ G.bag=[]; G.worn={}; G.equipHp=0; G.atk=0; G.def=0; }   // spawn empty-handed: no gear, weak unarmed damage
   recompute(); hud(); renderProfile(); $('#cmd').focus();
   if(G.cfg.demo){ $('#modeTag').textContent='OFFLINE DEMO · procedural'; demoStart(); return; }
   // Detect a local proxy (server.py keeps the key server-side). If none exists
@@ -1260,6 +1296,7 @@ WORLD: This is an open medieval LAND, not an underground dungeon. The player jou
 STYLE: Address the player as "you". Write like classic Zork: plain, concrete, and a touch dry — not florid. 2–4 sentences. Lead with what is physically THERE (what you see, hear, smell) before any mood. Use specific nouns and strong verbs; do NOT stack adjectives, reach for grand or ornate vocabulary, or pad with flowery filler. Vary sentence length so it never reads as purple prose. Understatement and dry wit beat melodrama. Name locations like a parser game ("The Blackpine Crossroads", "Gate of Ashford Keep"). Offer overland exits AND entrances to nearby places. Reward exploration and clever, specific actions. Introduce wildlife, bandits, beasts, the occasional powerful BOSS, hidden treasure CHESTS, hermits and merchants.${seed}${charDesc()}
 PERIL: ${peril}
 
+STARTING STATE: The player begins UNARMED and owns NOTHING — no weapon, no armour, an empty satchel. Their bare-handed blows are weak. Never describe them as already equipped or armed at the start; every weapon, piece of armour and item must be found, looted, bought, or taken during play. Check the STATE worn/satchel lists — those are the only things they have.
 LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". You MAY narrate treasure flavour, but the game generates the actual items.
 COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given. Whenever a creature or boss is fighting the player set "in_combat": true and fill "enemy" with its name, current hp, max_hp and attack so the GAME can show its health bar; LOWER enemy.hp as the player wounds it, and when it dies or the fight ends set "in_combat": false (and "boss_defeated": true if it was a boss).
 NPCs & MERCHANTS: Populate the land with people — hermits, pilgrims, guards, beggars, wandering minstrels. Occasionally a TRAVELLING MERCHANT appears who sells exactly ONE item. When a merchant is present, set "merchant": true (and optionally "merchant_name"); the GAME picks the single item, its rarity and its gold price, and handles the purchase when the player types "buy". Keep "merchant": true on later turns while that merchant is still with the player (see the STATE "merchant" line); once the player buys or moves on, stop setting it. Do NOT invent your own prices or hand over items yourself — the GAME does the trade.
