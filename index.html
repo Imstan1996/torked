@@ -298,6 +298,7 @@
   .oddments .od-h{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px}
   .oddments .od-chip{display:inline-block;font-size:11.5px;color:var(--ink);background:#171107;border:1px solid var(--line);border-radius:12px;padding:3px 9px;margin:0 5px 5px 0;cursor:pointer;transition:.12s}
   .oddments .od-chip:hover{border-color:var(--gold);color:var(--gold-bright)}
+  .oddments .od-qty{color:var(--gold-bright);font-weight:700;margin-left:2px}
 
   /* equipment OSRS layout */
   .eqwrap{display:flex;flex-direction:column;align-items:center}
@@ -1588,9 +1589,9 @@ function renderBag(){
   }).join('');
   grid.querySelectorAll('.cell').forEach(c=>c.addEventListener('click',()=>select(c.getAttribute('data-id'),'bag')));
   const od=$('#oddments');
-  if(od){ const list=(G.carried||[]); if(list.length){ od.style.display='block';
-      od.innerHTML='<div class="od-h">🎒 Also carrying — tap to use / eat / equip</div>'+list.map((n,i)=>`<span class="od-chip" data-odi="${i}" title="Use, eat, drink or equip">${esc(n)}</span>`).join('');
-      od.querySelectorAll('.od-chip[data-odi]').forEach(c=>c.addEventListener('click',()=>{ const it=(G.carried||[])[+c.getAttribute('data-odi')]; if(it!=null) useOddment(it); }));
+  if(od){ normalizeCarried(); const list=G.carried; if(list.length){ od.style.display='block';
+      od.innerHTML='<div class="od-h">🎒 Also carrying — tap to use / eat / equip</div>'+list.map((o,i)=>`<span class="od-chip" data-odi="${i}" title="Use, eat, drink or equip">${esc(o.name)}${o.qty>1?` <b class="od-qty">×${o.qty}</b>`:''}</span>`).join('');
+      od.querySelectorAll('.od-chip[data-odi]').forEach(c=>c.addEventListener('click',()=>{ const it=G.carried[+c.getAttribute('data-odi')]; if(it!=null) useOddment(it); }));
     } else od.style.display='none'; }
 }
 const EQ_LAYOUT=['ammo','head',null,'amulet',null,null,'weapon','body','shield',null,'legs',null,'hands','feet','ring'];
@@ -1707,13 +1708,31 @@ function useConsumable(it){
 const ODD_FOOD=/\b(stew|soup|broth|pottage|bread|loaf|roll|bun|meat|beef|pork|venison|mutton|cheese|apple|pear|fruit|berry|berries|plum|pie|pasty|ration|jerky|fish|trout|egg|porridge|honey|nuts|biscuit|cake|sausage|dumpling|gruel)\b/;
 const ODD_DRINK=/\b(water|ale|wine|mead|beer|cider|milk|tea|grog|brew|broth|soup|stew|flask|skin|waterskin|canteen|juice)\b/;
 const ODD_WEAPON=/\b(dagger|knife|dirk|shiv|sword|blade|axe|hatchet|club|cudgel|mace|maul|hammer|spear|pike|lance|staff|quarterstaff|wand|rod|bow|cleaver|machete|sabre|scimitar|rapier|glaive|halberd|trident|pitchfork|cane)\b/;
-function useOddment(name){
-  if(name==null) return; const low=String(name).toLowerCase();
-  const rm=()=>{ G.carried=(G.carried||[]).filter(x=>x!==name); };
+// carried oddments are stored as {name, qty} — these helpers keep stacks tidy
+function normalizeCarried(){ if(!Array.isArray(G.carried)){ G.carried=[]; return; }
+  G.carried = G.carried.map(o=> (typeof o==='string') ? {name:o, qty:1} : (o&&o.name)?{name:o.name, qty:Math.max(1,o.qty||1)} : null ).filter(Boolean); }
+function carriedFind(name){ name=String(name).toLowerCase(); return (G.carried||[]).find(o=>o.name.toLowerCase()===name); }
+function carriedAdd(name, qty){ name=String(name||'').trim().slice(0,40); if(!name) return; qty=Math.max(1,qty||1);
+  normalizeCarried(); const ex=carriedFind(name); if(ex){ ex.qty+=qty; } else { if(G.carried.length>=40) G.carried.shift(); G.carried.push({name, qty}); } }
+function carriedRemove(name, qty){ normalizeCarried(); const ex=carriedFind(name); if(!ex) return;
+  if(qty==null){ G.carried=G.carried.filter(o=>o!==ex); } else { ex.qty-=qty; if(ex.qty<=0) G.carried=G.carried.filter(o=>o!==ex); } }
+// parse "5 apples" / "apple x3" / "stew" into {name, qty}
+function parseOddmentEntry(s){ s=String(s||'').trim(); let qty=1, name=s;
+  let m=s.match(/^(\d+)\s*[x×]?\s+(.+)$/i); if(m){ qty=+m[1]; name=m[2]; }
+  else { m=s.match(/^(.+?)\s*[x×]\s*(\d+)$/i); if(m){ name=m[1]; qty=+m[2]; } }
+  qty=Math.max(1,Math.min(99,qty));
+  name=name.trim();
+  if(qty>1 && name.length>3 && /s$/i.test(name) && !/ss$/i.test(name)) name=name.replace(/ies$/i,'y').replace(/ves$/i,'f').replace(/s$/i,'');  // singularise a plural
+  return {name, qty};
+}
+function useOddment(entry){
+  if(entry==null) return; const o = (typeof entry==='string') ? carriedFind(entry) : entry;
+  const name = o ? o.name : String(entry); const low=name.toLowerCase();
+  const have = o ? o.qty : 1;
   if(ODD_WEAPON.test(low)){
     const kind = /staff|quarterstaff/.test(low)?'staff' : /wand|rod/.test(low)?'wand' : /\bbow\b/.test(low)?'bow' : 'weapon';
     const it=makeGear(kind,'common',0,{name:cap(low)});   // scavenged weapons are always Common
-    rm(); G.bag.push(it); equip(it);
+    carriedRemove(name,1); G.bag.push(it); equip(it);
     line(`You ready the ${esc(name)} as a weapon. <span class="sys">(Common ${kind})</span>`,'good');
     recompute(); hud(); return;
   }
@@ -1723,8 +1742,9 @@ function useOddment(name){
     if(isFood){ const before=G.hunger; G.hunger=Math.min(G.maxHunger,G.hunger+ri(22,34)); const g=Math.round(G.hunger-before); if(g>0)parts.push(`+${g} hunger`);
       const hp=Math.min(ri(2,5),G.maxHp-G.hp); if(hp>0){G.hp+=hp; parts.push(`+${hp} vitality`);} }
     if(isDrink){ const before=G.thirst; G.thirst=Math.min(G.maxThirst,G.thirst+ri(28,42)); const t=Math.round(G.thirst-before); if(t>0)parts.push(`+${t} thirst`); }
-    rm(); SFX.play('gold');
-    line(`You ${verb} the ${esc(name)}${parts.length?` — <span class="good">${parts.join(', ')}</span>`:' — but feel no better'}.`, parts.length?'good':'sys');
+    carriedRemove(name,1); SFX.play('gold');
+    const left = Math.max(0, have-1);
+    line(`You ${verb} ${have>1?'one of the '+esc(name)+'s':'the '+esc(name)}${parts.length?` — <span class="good">${parts.join(', ')}</span>`:' — but feel no better'}${left>0?` <span class="sys">(${left} left)</span>`:''}.`, parts.length?'good':'sys');
     recompute(); hud(); return;
   }
   line(`You turn the ${esc(name)} over in your hands — there's nothing to use it for right now.`,'sys');
@@ -1900,7 +1920,7 @@ Reply with ONLY one JSON object, no markdown:
   "found_key": false,        // true when the player obtains a key (game adds it to the satchel)
   "key_name": "",            // name of that key, e.g. "Rusted Iron Key"
   "reward": false,           // true when the player solves a riddle/puzzle or opens a lock through real effort (game grants a loot reward)
-  "took_items": [],          // short names of ANY ordinary world objects the player picks up this turn (e.g. "stone", "torch", "frayed rope") — the game REMEMBERS them so later use isn't mistaken for cheating
+  "took_items": [],          // short names of ANY ordinary world objects the player picks up this turn — INCLUDE A COUNT when it's more than one, e.g. "5 apples", "torch", "3 arrows" — the game stacks and REMEMBERS them so later use isn't mistaken for cheating
   "dropped_items": [],       // short names of carried oddments the player uses up, drops, throws, breaks or gives away this turn (game forgets them)
   "merchant": false,         // true while a travelling merchant is present (game sets item/price, handles "buy")
   "merchant_name": "",       // the merchant's name/title, if any
@@ -1923,7 +1943,7 @@ turns survived: ${G.steps||0}${(G.steps||0)>100?' (a MEGA BOSS may now appear)':
 gold: ${G.gold}  score: ${G.score}  depth: ${G.depth}  damage-buff: ${G.buffTurns>0?G.dmgBuff:0}
 worn: ${worn}
 satchel: ${bag}
-carried oddments (real world objects the player has already picked up — these ARE legitimately theirs; using or referring to them is NOT cheating): ${(G.carried&&G.carried.length)?G.carried.join(', '):'none'}
+carried oddments (real world objects the player has already picked up — these ARE legitimately theirs; using or referring to them is NOT cheating): ${(function(){normalizeCarried();return G.carried.length?G.carried.map(o=>o.qty>1?`${o.qty} ${o.name}`:o.name).join(', '):'none';})()}
 merchant: ${G.merchant ? `${G.merchant.name} is here selling a ${G.merchant.item.rarity} "${G.merchant.item.name}" for ${G.merchant.price} gold (player types "buy" to purchase — the GAME handles it)` : 'none present'}
 watchful-realm suspicion: ${G.suspicion||0}  (0 = unwatched. The higher it climbs, the more actively the world must hunt, trap and thwart a player who keeps trying to cheat — scale your scheming to this number.)
 turn: ${G.turn}
@@ -2023,9 +2043,10 @@ async function applyTurn(raw,cmd){
   if(o.bleeding===true && G.bleed<=0){ G.bleed=SURV.bleedTurns; SFX.play('hurt'); line('<span class="dmg">🩸 A blade opens a bleeding wound! Bind it with a bandage.</span>','dmg'); }
   if(o.found_key===true){ const k=makeKey(o.key_name); G.bag.push(k); SFX.play('loot'); line(`🗝️ You obtain the <span class="r-rare">${esc(k.name)}</span>.`,'good'); }
   if(o.reward===true){ line('<span class="good">Solved! A reward is yours.</span>','good'); grantLoot(genLoot('chest',G.depth)); }
-  // remember ad-hoc world objects the player picks up, so re-using them later isn't seen as cheating
-  if(Array.isArray(o.took_items)){ o.took_items.forEach(n=>{ n=String(n||'').trim().slice(0,40); if(!n) return; const low=n.toLowerCase(); if(!G.carried.some(x=>x.toLowerCase()===low)){ G.carried.push(n); if(G.carried.length>30) G.carried.shift(); } }); }
-  if(Array.isArray(o.dropped_items)){ o.dropped_items.forEach(n=>{ const low=String(n||'').trim().toLowerCase(); G.carried=G.carried.filter(x=>x.toLowerCase()!==low); }); }
+  // remember ad-hoc world objects the player picks up (with quantities), so re-using them later isn't seen as cheating
+  normalizeCarried();
+  if(Array.isArray(o.took_items)){ o.took_items.forEach(s=>{ const p=parseOddmentEntry(s); if(p.name) carriedAdd(p.name, p.qty); }); }
+  if(Array.isArray(o.dropped_items)){ o.dropped_items.forEach(s=>{ const p=parseOddmentEntry(s); if(p.name) carriedRemove(p.name, p.qty); }); }
   // loot & bosses (game-controlled)
   if(o.boss_defeated && o.mega_set && (G.steps||0)>100){
     const boss=MEGABOSSES.find(b=>b.set===o.mega_set)||megaBossByName(o.mega_set); const myth=makeMythic(boss,G.depth);
