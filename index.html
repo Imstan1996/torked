@@ -1039,12 +1039,12 @@ const ICON = {
 };
 const COLOR = {common:'#cdc7b6',rare:'#5aa0e0',epic:'#b277e6',legendary:'#f4a623',mythic:'#ff5e4d'};
 // keys that have a painted 2D art icon (icon-<key>.png in the folder)
-const IMG_ICONS = new Set(['weapon','head','body','legs','shield','hands','feet','ring','amulet','potion','coin','chest','staff','wand','robe','bow','arrows','water','meat','bread','bandage','key']);
+const IMG_ICONS = new Set(['weapon','head','body','legs','shield','hands','feet','ring','amulet','potion','coin','chest','staff','wand','robe','bow','arrows','water','meat','bread','bandage','key','m-draconic','m-arcane','m-necrotic','m-titan','m-tempest']);
 function svgVec(name, rarity, size){   // always the simple vector silhouette (for empty slots)
   const c = COLOR[rarity]||'#cdc7b6';
   return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${c}" stroke="none">${ICON[name]||ICON.misc}</svg>`;
 }
-const ICON_EMOJI={weapon:'⚔️',head:'🪖',body:'🦺',legs:'👖',shield:'🛡️',hands:'🧤',feet:'🥾',ring:'💍',amulet:'📿',potion:'🧪',coin:'🪙',chest:'🧰',staff:'🪄',wand:'🪄',robe:'🥋',bow:'🏹',arrows:'🪶',water:'💧',meat:'🍖',bread:'🍞',bandage:'🩹',key:'🗝️'};
+const ICON_EMOJI={weapon:'⚔️',head:'🪖',body:'🦺',legs:'👖',shield:'🛡️',hands:'🧤',feet:'🥾',ring:'💍',amulet:'📿',potion:'🧪',coin:'🪙',chest:'🧰',staff:'🪄',wand:'🪄',robe:'🥋',bow:'🏹',arrows:'🪶',water:'💧',meat:'🍖',bread:'🍞',bandage:'🩹',key:'🗝️','m-draconic':'⚔️','m-arcane':'🪄','m-necrotic':'⚔️','m-titan':'🛡️','m-tempest':'🏹'};
 function iconFallback(img,glyph){ try{ const s=document.createElement('span'); s.className='emoji-icon'; s.textContent=glyph; s.style.fontSize=Math.round((img.width||20)*0.92)+'px'; s.style.lineHeight='1'; img.replaceWith(s); }catch(e){} }
 function svg(name, rarity, size=26){
   if(IMG_ICONS.has(name)){ const g=ICON_EMOJI[name]||'📦'; return `<img class="art" src="icon-${name}.png" width="${size}" height="${size}" alt="" draggable="false" onerror="iconFallback(this,'${g}')">`; }
@@ -1104,18 +1104,18 @@ function makeArrows(rarity, depth){ const m=RARITY[rarity].mult, d=depth||0;
     name:`${rnd(ADJ[rarity])} ${rnd(BASE.arrows)}`, ranged:Math.round((1+d*0.3)*m), qty:ri(8,18)+Math.floor(d*1.5), value:Math.round(6*m)}; }
 // ----- mega bosses (after 100 turns): each drops ONE item from its mythic set -----
 const MEGABOSSES=[
-  {name:'Vorthrax the Iron Wyrm',    set:'Draconic',    kinds:['weapon','shield','body','head'], blurb:'a vast metallic dragon, scales like riveted steel'},
-  {name:'Malakar the Archmage',       set:'Arcane',      kinds:['staff','wand','robe','amulet'],  blurb:'an ancient archmage wreathed in crackling sigils'},
-  {name:'Sorrowmoor the Lich-King',   set:'Necrotic',    kinds:['weapon','staff','body','ring'],   blurb:'a towering lich crowned in black flame'},
-  {name:'Gorothûl the Titan',         set:'Titanforged', kinds:['weapon','shield','body','legs'],  blurb:'a mountainous titan of living stone and iron'},
-  {name:'Ysmera the Stormcaller',     set:'Tempest',     kinds:['staff','bow','robe','amulet'],    blurb:'a storm-sorceress riding a vortex of lightning'},
+  {name:'Vorthrax the Iron Wyrm',    set:'Draconic',    sigKind:'weapon', sigName:'Draconic Greatsword', sigIcon:'m-draconic', blurb:'a vast metallic dragon, scales like riveted steel'},
+  {name:'Malakar the Archmage',       set:'Arcane',      sigKind:'staff',  sigName:'Arcanist Staff',     sigIcon:'m-arcane',   blurb:'an ancient archmage wreathed in crackling sigils'},
+  {name:'Sorrowmoor the Lich-King',   set:'Necrotic',    sigKind:'weapon', sigName:'Necrotic Greatblade',sigIcon:'m-necrotic', blurb:'a towering lich crowned in black flame'},
+  {name:'Gorothûl the Titan',         set:'Titanforged', sigKind:'shield', sigName:'Titanforged Aegis',  sigIcon:'m-titan',    blurb:'a mountainous titan of living stone and iron'},
+  {name:'Ysmera the Stormcaller',     set:'Tempest',     sigKind:'bow',    sigName:'Tempest Warbow',     sigIcon:'m-tempest',  blurb:'a storm-sorceress riding a vortex of lightning'},
 ];
 function megaBossByName(nm){ nm=(nm||'').toLowerCase(); return MEGABOSSES.find(b=>nm.includes(b.set.toLowerCase())) || MEGABOSSES.find(b=>nm.includes(b.name.toLowerCase().split(' ')[0])) || null; }
 function makeMythic(boss, depth){
   boss = boss || rnd(MEGABOSSES);
-  const kind = rnd(boss.kinds);
-  const it = makeGear(kind, 'mythic', depth, {name:`${boss.set} ${rnd(BASE[kind]||BASE.weapon)}`});
-  it.mega = boss.set;                 // tag for unique art later
+  const it = makeGear(boss.sigKind, 'mythic', depth, {name:boss.sigName});
+  it.icon = boss.sigIcon;             // unique badass art
+  it.mega = boss.set;
   it.value = Math.round(it.value*1.6);
   return it;
 }
