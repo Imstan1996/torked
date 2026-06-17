@@ -115,6 +115,11 @@
   .tts-toggle input{width:auto!important;accent-color:var(--gold)}
   #ttsSave{font-family:"Cinzel",serif;font-size:13px;letter-spacing:.5px;color:#2a1c08;background:linear-gradient(#f4cf6b,#d8a93a);border:1px solid #8a6a1e;border-radius:8px;padding:9px 16px;cursor:pointer}
   .tts-note{margin-top:12px;font-size:11.5px;color:var(--ink-dim)}
+  .tts-engines{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+  .tts-engines label{display:flex!important;align-items:flex-start;gap:8px;font-family:inherit!important;text-transform:none!important;letter-spacing:0!important;
+    font-size:12.8px!important;color:var(--ink)!important;margin:0!important;cursor:pointer;background:#120e07;border:1px solid var(--line);border-radius:8px;padding:9px 11px;line-height:1.35}
+  .tts-engines label:hover{border-color:var(--gold)}
+  .tts-engines input{width:auto!important;accent-color:var(--gold);margin-top:2px}
   .lb-again{margin-top:14px;width:100%;font-family:"Cinzel",serif;font-size:15px;letter-spacing:.5px;color:#2a1c08;
     background:linear-gradient(#f4cf6b,#d8a93a);border:1px solid #8a6a1e;border-radius:9px;padding:11px;cursor:pointer;box-shadow:0 2px 0 #7a5c18}
   .lb-again:hover{transform:translateY(-1px)}
@@ -581,31 +586,49 @@
   <div id="ttsOverlay">
     <div class="lb-card">
       <button class="lb-close" id="ttsClose">✕</button>
-      <h2 class="lb-title">✨ Realistic narrator</h2>
+      <h2 class="lb-title">✨ Narrator voice</h2>
       <div class="tts-body">
-        <p>Have the tale read aloud by a lifelike AI voice that <b>reacts to the action</b> — urgent in battle, ominous when a boss looms, grave at death. It uses OpenAI's voices with your own key (pennies per session); the free browser voice stays the default.</p>
-        <ol>
-          <li>Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a> (needs billing enabled — TTS is very cheap).</li>
-          <li>Paste it below and pick a voice, then <b>Save &amp; test</b>.</li>
-        </ol>
-        <label for="ttsKey">OpenAI API key</label>
-        <input id="ttsKey" type="password" placeholder="sk-..." autocomplete="off" />
-        <label for="ttsVoice">Narrator voice</label>
-        <select id="ttsVoice">
-          <option value="ash">Ash — expressive, dramatic (recommended)</option>
-          <option value="ballad">Ballad — warm storyteller</option>
-          <option value="onyx">Onyx — deep &amp; commanding</option>
-          <option value="sage">Sage — calm, wise</option>
-          <option value="fable">Fable — characterful narrator</option>
-          <option value="verse">Verse — lively</option>
-          <option value="coral">Coral — bright</option>
-          <option value="nova">Nova — clear</option>
-        </select>
-        <div class="tts-row">
-          <label class="tts-toggle"><input type="checkbox" id="ttsEnable"> Use realistic voice</label>
+        <p>Choose how the tale is read aloud. The <b>in-browser AI voice is free</b> and reacts to the action; OpenAI is the most expressive but needs your own key.</p>
+        <label>Voice engine</label>
+        <div class="tts-engines">
+          <label><input type="radio" name="ttsEng" value="browser"> <b>Basic</b> — free &amp; instant (your device's built-in voice)</label>
+          <label><input type="radio" name="ttsEng" value="kokoro"> <b>Realistic AI — free, no key</b> · runs in your browser (one-time ~80&nbsp;MB download)</label>
+          <label><input type="radio" name="ttsEng" value="openai"> <b>OpenAI</b> — most expressive &amp; reactive (your API key, pennies per session)</label>
+        </div>
+
+        <div id="kkBox" style="display:none">
+          <label for="kkVoice">In-browser voice</label>
+          <select id="kkVoice">
+            <option value="bm_george">George — British male, storyteller (recommended)</option>
+            <option value="bm_lewis">Lewis — British male, deep</option>
+            <option value="bf_emma">Emma — British female</option>
+            <option value="am_onyx">Onyx — American male, deep</option>
+            <option value="am_michael">Michael — American male</option>
+            <option value="af_heart">Heart — American female, warm</option>
+          </select>
+          <div class="tts-note">First time you turn this on it downloads a small AI model (cached after). Best on a recent browser; falls back to the basic voice if unsupported.</div>
+        </div>
+
+        <div id="oaBox" style="display:none">
+          <label for="ttsKey">OpenAI API key (starts with sk-)</label>
+          <input id="ttsKey" type="password" placeholder="sk-..." autocomplete="off" />
+          <label for="ttsVoice">OpenAI voice</label>
+          <select id="ttsVoice">
+            <option value="ash">Ash — expressive, dramatic (recommended)</option>
+            <option value="ballad">Ballad — warm storyteller</option>
+            <option value="onyx">Onyx — deep &amp; commanding</option>
+            <option value="sage">Sage — calm, wise</option>
+            <option value="fable">Fable — characterful narrator</option>
+            <option value="verse">Verse — lively</option>
+            <option value="coral">Coral — bright</option>
+            <option value="nova">Nova — clear</option>
+          </select>
+          <div class="tts-note">Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a> — needs a little API billing (separate from ChatGPT Plus). 🔒 Stored only in this browser.</div>
+        </div>
+
+        <div class="tts-row" style="justify-content:flex-end">
           <button id="ttsSave">Save &amp; test ▸</button>
         </div>
-        <div class="tts-note">🔒 Your key is stored only in this browser and sent only to OpenAI. Turn this off to use the free built-in voice.</div>
       </div>
     </div>
   </div>
@@ -675,6 +698,10 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'17 Jun 2026', title:'Free Realistic Voice', items:[
+   'New free AI narrator that runs entirely in your browser — no key, no cost',
+   'Pick your voice engine in the ✨ panel: Basic, free in-browser AI, or OpenAI',
+   'The in-browser voice downloads a small model once, then works offline']},
  {date:'17 Jun 2026', title:'A Voice That Reacts', items:[
    'New ✨ Realistic narrator: a lifelike AI voice that reacts to the action',
    'It turns urgent in battle, ominous when a boss looms, and grave at death',
@@ -809,11 +836,27 @@ const TTS = {
     this.voice = vs.slice().sort((a,b)=>this.score(b)-this.score(a))[0] || vs[0];
   },
   setVoice(idOrName){ const vs=speechSynthesis.getVoices(); const v=vs.find(x=>x.voiceURI===idOrName||x.name===idOrName); if(v){ this.voice=v; this.chosen=v.voiceURI||v.name; try{localStorage.setItem('torked_voice',this.chosen);}catch(e){} } },
-  // ----- realistic OpenAI narration (bring-your-own-key, browser-direct) -----
-  real:false, oaKey:'', oaVoice:'ash', _audio:null,
+  // ----- engines: 'browser' (free) | 'kokoro' (free, in-browser AI) | 'openai' (your key) -----
+  engine:'browser', real:false, oaKey:'', oaVoice:'ash', kkVoice:'bm_george', _audio:null,
   speak(text, mood){ if(!this.on||!text) return;
-    if(this.real && this.oaKey){ this.speakOpenAI(text, mood).then(ok=>{ if(!ok) this.speakBrowser(text, mood); }); return; }
+    if(this.engine==='openai' && this.oaKey){ this.speakOpenAI(text, mood).then(ok=>{ if(!ok) this.speakBrowser(text, mood); }); return; }
+    if(this.engine==='kokoro'){ this.speakKokoro(text, mood); return; }
     this.speakBrowser(text, mood);
+  },
+  async speakKokoro(text, mood){
+    try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){}
+    if(!KOKORO.ready){
+      if(!KOKORO.loading) line('<span class="sys">Loading the free in-browser voice (one-time download, ~80&nbsp;MB)… first lines may be silent.</span>','sys');
+      const ok=await KOKORO.ensure();
+      if(!ok){ line('<span class="sys">The free AI voice could not load on this device — using the browser voice.</span>','sys'); this.engine='browser'; this.speakBrowser(text,mood); if(typeof paintVoiceControls==='function')paintVoiceControls(); return; }
+      line('<span class="good">✨ Free in-browser narrator ready.</span>','good');
+    }
+    const speed={grave:0.9,ominous:0.92,urgent:1.12,delighted:1.04,narrator:1.0}[mood||'narrator']||1.0;
+    const url=await KOKORO.synth(text, this.kkVoice, speed);
+    if(!url){ this.speakBrowser(text,mood); return; }
+    if(this._audio){ try{this._audio.pause();}catch(e){} }
+    this._audio=new Audio(url); this._audio.onended=()=>URL.revokeObjectURL(url);
+    this._audio.play().catch(()=>{ line('<span class="sys">Click anywhere once to allow audio, then narration will speak.</span>','sys'); });
   },
   speakBrowser(text, mood){ if(!('speechSynthesis' in window)) return; speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(text.slice(0,600)); if(this.voice) u.voice=this.voice;
@@ -865,9 +908,37 @@ function narrationMood(o){
   }catch(e){}
   return 'narrator';
 }
+// ----- free in-browser neural TTS via kokoro-js (no key, runs locally) -----
+const KOKORO = {
+  tts:null, ready:false, loading:false, device:null,
+  async ensure(){
+    if(this.ready) return true; if(this.loading) return false;
+    this.loading=true;
+    try{
+      const mod = await import('https://esm.sh/kokoro-js@1.2.1');
+      const KokoroTTS = mod.KokoroTTS;
+      const webgpu = (typeof navigator!=='undefined' && navigator.gpu);
+      this.device = webgpu ? 'webgpu' : 'wasm';
+      this.tts = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX',
+        { dtype: webgpu ? 'fp32' : 'q8', device: this.device });
+      this.ready=true; this.loading=false; return true;
+    }catch(e){ console.warn('kokoro load',e); this.loading=false; return false; }
+  },
+  async synth(text, voice, speed){
+    if(!this.ready) return null;
+    try{
+      const audio = await this.tts.generate(String(text).slice(0,700), { voice: voice||'bm_george', speed: speed||1.0 });
+      const blob = audio.toBlob ? audio.toBlob() : new Blob([audio.toWav()], {type:'audio/wav'});
+      return URL.createObjectURL(blob);
+    }catch(e){ console.warn('kokoro synth',e); return null; }
+  }
+};
 try{ TTS.chosen=localStorage.getItem('torked_voice')||null;
      TTS.oaKey=localStorage.getItem('torked_tts_key')||''; TTS.oaVoice=localStorage.getItem('torked_tts_voice')||'ash';
-     TTS.real=localStorage.getItem('torked_tts_on')==='1' && !!TTS.oaKey; }catch(e){}
+     TTS.kkVoice=localStorage.getItem('torked_kk_voice')||'bm_george';
+     TTS.engine=localStorage.getItem('torked_tts_engine')||(localStorage.getItem('torked_tts_on')==='1'&&TTS.oaKey?'openai':'browser');
+     if(TTS.engine==='openai' && !TTS.oaKey) TTS.engine='browser';
+     TTS.real=(TTS.engine==='openai'); }catch(e){}
 function buildVoiceMenu(){ const sel=document.getElementById('voicePick'); if(!sel) return; const vs=TTS.voiceList(); if(!vs.length) return;
   const ranked=vs.slice().sort((a,b)=>TTS.score(b)-TTS.score(a));
   sel.innerHTML=ranked.map(v=>`<option value="${(v.voiceURI||v.name).replace(/"/g,'')}"${(TTS.voice&&(v.voiceURI===TTS.voice.voiceURI))?' selected':''}>${(v.name||'Voice').replace(/[<>]/g,'')}</option>`).join('');
@@ -1346,38 +1417,49 @@ document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click
 // sound + read-aloud toggles
 $('#sfxToggle').addEventListener('click',()=>{ SFX.on=!SFX.on; SFX.init(); $('#sfxToggle').classList.toggle('on',SFX.on); $('#sfxToggle').textContent=SFX.on?'🔊':'🔇'; if(SFX.on) SFX.play('gold'); });
 function paintVoiceControls(){ const vp=document.getElementById('voicePick'), rb=document.getElementById('realVoiceBtn');
-  if(vp) vp.style.display=(TTS.on && !TTS.real)?'':'none';   // browser-voice picker only matters for the free voice
-  if(rb) rb.classList.toggle('on',TTS.real); }
+  if(vp) vp.style.display=(TTS.on && TTS.engine==='browser')?'':'none';   // browser-voice picker only matters for the basic voice
+  if(rb) rb.classList.toggle('on',TTS.engine!=='browser'); }
 $('#ttsToggle').addEventListener('click',()=>{ TTS.on=!TTS.on; $('#ttsToggle').classList.toggle('on',TTS.on);
   paintVoiceControls();
   if(TTS.on){ TTS.pickVoice(); buildVoiceMenu(); TTS.speak('Your tale shall be told aloud.', 'narrator'); } else TTS.stop(); });
 { const vp=document.getElementById('voicePick'); if(vp) vp.addEventListener('change',e=>{ TTS.setVoice(e.target.value); TTS.speak('A new voice takes up the tale.','narrator'); }); }
 // ✨ realistic narrator setup
+function ttsShowEngineBoxes(){
+  const eng=(document.querySelector('input[name="ttsEng"]:checked')||{}).value||'browser';
+  const kk=document.getElementById('kkBox'), oa=document.getElementById('oaBox');
+  if(kk) kk.style.display=(eng==='kokoro')?'block':'none';
+  if(oa) oa.style.display=(eng==='openai')?'block':'none';
+}
 { const rb=document.getElementById('realVoiceBtn'); if(rb) rb.addEventListener('click',()=>{
     const ov=document.getElementById('ttsOverlay'); if(!ov) return;
+    const r=document.querySelector(`input[name="ttsEng"][value="${TTS.engine||'browser'}"]`); if(r) r.checked=true;
     document.getElementById('ttsKey').value=TTS.oaKey||'';
     document.getElementById('ttsVoice').value=TTS.oaVoice||'ash';
-    document.getElementById('ttsEnable').checked=!!TTS.real;
+    document.getElementById('kkVoice').value=TTS.kkVoice||'bm_george';
+    ttsShowEngineBoxes();
     ov.classList.add('show');
   }); }
+document.querySelectorAll('input[name="ttsEng"]').forEach(r=>r.addEventListener('change',ttsShowEngineBoxes));
 { const c=document.getElementById('ttsClose'); if(c) c.addEventListener('click',()=>document.getElementById('ttsOverlay').classList.remove('show')); }
 { const ov=document.getElementById('ttsOverlay'); if(ov) ov.addEventListener('click',e=>{ if(e.target.id==='ttsOverlay') ov.classList.remove('show'); }); }
 { const sv=document.getElementById('ttsSave'); if(sv) sv.addEventListener('click',()=>{
+    const eng=(document.querySelector('input[name="ttsEng"]:checked')||{}).value||'browser';
     const key=document.getElementById('ttsKey').value.trim();
-    const voice=document.getElementById('ttsVoice').value;
-    const enable=document.getElementById('ttsEnable').checked;
-    if(key && !enable){ document.getElementById('ttsEnable').checked=true; }   // a key was added → assume they want it on
-    TTS.oaKey=key; TTS.oaVoice=voice; TTS.real=(enable||!!key) && !!key;
-    try{ localStorage.setItem('torked_tts_key',key); localStorage.setItem('torked_tts_voice',voice); localStorage.setItem('torked_tts_on',TTS.real?'1':'0'); }catch(e){}
-    if(TTS.real && !TTS.on){ TTS.on=true; $('#ttsToggle').classList.add('on'); }
+    const oaVoice=document.getElementById('ttsVoice').value;
+    const kkVoice=document.getElementById('kkVoice').value;
+    TTS.oaKey=key; TTS.oaVoice=oaVoice; TTS.kkVoice=kkVoice;
+    TTS.engine = (eng==='openai' && !key) ? 'browser' : eng;   // openai needs a key
+    TTS.real = (TTS.engine==='openai');
+    try{ localStorage.setItem('torked_tts_engine',TTS.engine); localStorage.setItem('torked_tts_key',key);
+         localStorage.setItem('torked_tts_voice',oaVoice); localStorage.setItem('torked_kk_voice',kkVoice);
+         localStorage.setItem('torked_tts_on',TTS.real?'1':'0'); }catch(e){}
+    if(TTS.engine!=='browser' && !TTS.on){ TTS.on=true; $('#ttsToggle').classList.add('on'); }
     paintVoiceControls();
     document.getElementById('ttsOverlay').classList.remove('show');
-    if(key){
-      // always run the test THROUGH OpenAI so you can hear it (or see exactly why it failed)
-      line('<span class="sys">Testing the realistic narrator…</span>','sys');
-      TTS.speakOpenAI('By my oath — danger stirs in the dark, and your blade is all that stands between you and ruin!','urgent')
-        .then(ok=>{ if(ok) line('<span class="good">✨ Realistic narrator connected — it will now read the tale and react to the action.</span>','good'); });
-    } else { TTS.stop(); }
+    const testLine='By my oath — danger stirs in the dark, and your blade is all that stands between you and ruin!';
+    if(eng==='openai' && !key){ line('<span class="sys">OpenAI needs an API key — using the basic voice for now.</span>','sys'); TTS.speakBrowser(testLine,'urgent'); }
+    else if(TTS.engine==='openai'){ line('<span class="sys">Testing the OpenAI narrator…</span>','sys'); TTS.speakOpenAI(testLine,'urgent').then(ok=>{ if(ok) line('<span class="good">✨ OpenAI narrator connected.</span>','good'); }); }
+    else { TTS.speak(testLine,'urgent'); }   // kokoro (loads on first use) or browser
   }); }
 paintVoiceControls();
 // background music toggle + volume
