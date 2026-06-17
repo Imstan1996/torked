@@ -229,6 +229,9 @@
   .bar>i{display:block;height:100%;transition:width .3s}
   .bar.hp>i{background:linear-gradient(90deg,#7a2c25,#c4564a)}
   .bar.mp>i{background:linear-gradient(90deg,#2c4a7a,#4a86c4)}
+  .bar.hunger>i{background:linear-gradient(90deg,#6e4416,#c98a34)}
+  .bar.thirst>i{background:linear-gradient(90deg,#1f5a6e,#3fb6c4)}
+  .bar.low>i{background:linear-gradient(90deg,#7a2c25,#c4564a)!important}
   .combatgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-top:8px}
   h3{margin:0 0 8px;font-size:11px;letter-spacing:2px;color:var(--ink-dim);font-family:"Cinzel",serif;
     text-transform:uppercase;border-bottom:1px solid var(--line);padding-bottom:6px}
@@ -443,7 +446,12 @@
           <div class="bar hp"><i id="hpbar" style="width:100%"></i></div>
           <div class="stat" style="margin-top:7px"><span>Resolve</span><span class="v" id="mpv">10 / 10</span></div>
           <div class="bar mp"><i id="mpbar" style="width:100%"></i></div>
+          <div class="stat" style="margin-top:7px"><span>🍖 Hunger</span><span class="v" id="hungerv">100 / 100</span></div>
+          <div class="bar hunger"><i id="hungerbar" style="width:100%"></i></div>
+          <div class="stat" style="margin-top:7px"><span>💧 Thirst</span><span class="v" id="thirstv">100 / 100</span></div>
+          <div class="bar thirst"><i id="thirstbar" style="width:100%"></i></div>
           <div class="combatgrid">
+            <div class="stat" id="bleedrow" style="display:none"><span title="A bleeding wound drains vitality each turn. Bind it with a bandage.">🩸 Bleeding</span><span class="v dmg" id="bleedv">0</span></div>
             <div class="stat"><span>Attack</span><span class="v" id="atkv">0</span></div>
             <div class="stat"><span>Defence</span><span class="v" id="defv">0</span></div>
             <div class="stat"><span>Gold</span><span class="v" id="goldv">0</span></div>
@@ -583,6 +591,13 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'16 Jun 2026', title:'Survive the Wilds', items:[
+   'Hunger & thirst now drain as you travel — eat food and drink to stay strong',
+   'Drink straight from rivers, creeks, wells and fountains, or carry vials of water',
+   'New supplies in the loot: water, roasted meat, bread, and bandages',
+   'Bleeding: sharp blades can open wounds that drain vitality over time — bind them with a bandage',
+   'Loot weapons and supplies from fallen foes (spears, swords, daggers and more)',
+   'Far more places to find: castles, cities, villages, creeks, mountains, caves, hideouts and camps']},
  {date:'16 Jun 2026', title:'A New Face', items:[
    'Brand-new character creator with hand-generated flat-vector portraits',
    'Choose your appearance (5 skin tones & faces), hairstyle (6 incl. bald) with 5 hair colours, and optional face paint',
@@ -723,13 +738,15 @@ const ICON = {
 };
 const COLOR = {common:'#cdc7b6',rare:'#5aa0e0',epic:'#b277e6',legendary:'#f4a623'};
 // keys that have a painted 2D art icon (icon-<key>.png in the folder)
-const IMG_ICONS = new Set(['weapon','head','body','legs','shield','hands','feet','ring','amulet','potion','coin','chest','staff']);
+const IMG_ICONS = new Set(['weapon','head','body','legs','shield','hands','feet','ring','amulet','potion','coin','chest','staff','water','meat','bread','bandage']);
 function svgVec(name, rarity, size){   // always the simple vector silhouette (for empty slots)
   const c = COLOR[rarity]||'#cdc7b6';
   return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${c}" stroke="none">${ICON[name]||ICON.misc}</svg>`;
 }
+const ICON_EMOJI={weapon:'⚔️',head:'🪖',body:'🦺',legs:'👖',shield:'🛡️',hands:'🧤',feet:'🥾',ring:'💍',amulet:'📿',potion:'🧪',coin:'🪙',chest:'🧰',staff:'🪄',water:'💧',meat:'🍖',bread:'🍞',bandage:'🩹'};
+function iconFallback(img,glyph){ try{ const s=document.createElement('span'); s.className='emoji-icon'; s.textContent=glyph; s.style.fontSize=Math.round((img.width||20)*0.92)+'px'; s.style.lineHeight='1'; img.replaceWith(s); }catch(e){} }
 function svg(name, rarity, size=26){
-  if(IMG_ICONS.has(name)) return `<img class="art" src="icon-${name}.png" width="${size}" height="${size}" alt="" draggable="false">`;
+  if(IMG_ICONS.has(name)){ const g=ICON_EMOJI[name]||'📦'; return `<img class="art" src="icon-${name}.png" width="${size}" height="${size}" alt="" draggable="false" onerror="iconFallback(this,'${g}')">`; }
   return svgVec(name, rarity, size);
 }
 
@@ -741,7 +758,7 @@ const ADJ = {
   legendary:['Dragonbone','Godforged','Eternal','Mythril','Ancient'],
 };
 const BASE = {
-  weapon:['Sword','Axe','Mace','Glaive','Dagger'],
+  weapon:['Sword','Axe','Mace','Glaive','Dagger','Spear','Shortsword','Longsword','Halberd','Cleaver','War Club','Hatchet'],
   head:['Helm','Coif','Greathelm','Hood'],
   body:['Cuirass','Breastplate','Hauberk','Tunic'],
   legs:['Greaves','Legguards','Chausses'],
@@ -776,14 +793,27 @@ function makePotion(rarity, depth){
 }
 function makeCoins(depth){ return {id:uid(),type:'coins',icon:'coin',rarity:'common',
   name:'Coins', amount:ri(5+depth*2, 14+depth*5)}; }
+// ----- survival consumables -----
+function makeWater(){ return {id:uid(),type:'water',use:'drink',icon:'water',rarity:'common',
+  name:'Vial of Water', thirst:55, value:5}; }
+function makeFood(){
+  if(Math.random()<0.5) return {id:uid(),type:'food',use:'eat',icon:'meat',rarity:'common',
+    name:'Roasted Meat', hunger:45, hp:6, value:9};
+  return {id:uid(),type:'food',use:'eat',icon:'bread',rarity:'common',
+    name:'Loaf of Bread', hunger:30, hp:3, value:6}; }
+function makeBandage(){ return {id:uid(),type:'bandage',use:'bandage',icon:'bandage',rarity:'common',
+  name:'Linen Bandage', hp:5, value:7}; }
 
 // roll a batch of loot for a chest / boss
 function genLoot(bias, depth, count){
   const out=[]; count = count || ri(1, bias==='boss'?3:2);
   for(let i=0;i<count;i++){
     const roll=Math.random();
-    if(roll<0.30) out.push(makeCoins(depth));
-    else if(roll<0.52) out.push(makePotion(rollRarity(bias), depth));
+    if(roll<0.20) out.push(makeCoins(depth));
+    else if(roll<0.34) out.push(makePotion(rollRarity(bias), depth));
+    else if(roll<0.47) out.push(makeWater());
+    else if(roll<0.60) out.push(makeFood());
+    else if(roll<0.68) out.push(makeBandage());
     else out.push(makeGear(rnd(SLOTS), rollRarity(bias), depth));
   }
   // a boss always yields at least one good piece of gear
@@ -856,8 +886,11 @@ const G = {
   location:'the threshold', exits:[],
   history:[], turn:0, over:false, busy:false,
   foe:null, chestHere:false,
-  suspicion:0, cunning:0   // Outsmart-the-AI: the watchful realm tracks cheat attempts vs. genuine cunning
+  suspicion:0, cunning:0,   // Outsmart-the-AI: the watchful realm tracks cheat attempts vs. genuine cunning
+  hunger:100, maxHunger:100, thirst:100, maxThirst:100, bleed:0   // survival
 };
+// survival tuning — gentle on purpose
+const SURV={ hungerDrain:1, thirstDrain:2, starveDmg:2, bleedDmg:2, bleedTurns:4 };
 
 // ---------- provider presets ----------
 const PROVIDERS = {
@@ -904,7 +937,7 @@ if(loadCfg() && (PROVIDERS[$('#provider').value]||{}).needsKey){
 const SAVE_KEY='torked_save_v1';
 const SAVE_FIELDS=['baseMaxHp','hp','maxHp','mp','maxMp','gold','score','depth','atk','def','equipHp',
   'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','merchant','char','cfg',
-  'suspicion','cunning'];
+  'suspicion','cunning','hunger','maxHunger','thirst','maxThirst','bleed'];
 function saveGame(){
   if(G.over) return;
   if(G.turn===0 && (G.history||[]).length===0 && (G.bag||[]).length===0 && G.score===0) return; // nothing meaningful yet
@@ -1112,6 +1145,11 @@ function hud(){
   $('#atkv').textContent=G.atk; $('#defv').textContent=G.def;
   $('#goldv').textContent=G.gold; $('#scorev').textContent=G.score; $('#depthv').textContent=G.depth;
   $('#buffv').textContent=G.buffTurns>0?`+${G.dmgBuff} (${G.buffTurns})`:'—';
+  // survival bars
+  const hp2=Math.max(0,Math.round(G.hunger)), tp=Math.max(0,Math.round(G.thirst));
+  if($('#hungerv')){ $('#hungerv').textContent=`${hp2} / ${G.maxHunger}`; const hb=$('#hungerbar'); hb.style.width=Math.max(0,G.hunger/G.maxHunger*100)+'%'; hb.parentNode.classList.toggle('low',G.hunger<=20); }
+  if($('#thirstv')){ $('#thirstv').textContent=`${tp} / ${G.maxThirst}`; const tb=$('#thirstbar'); tb.style.width=Math.max(0,G.thirst/G.maxThirst*100)+'%'; tb.parentNode.classList.toggle('low',G.thirst<=20); }
+  const br=$('#bleedrow'); if(br){ if(G.bleed>0){ br.style.display=''; $('#bleedv').textContent=`${G.bleed} turn${G.bleed>1?'s':''}`; } else br.style.display='none'; }
   const sr=$('#susprow'); if(sr){ if(G.suspicion>0){ sr.style.display=''; $('#suspv').textContent=G.suspicion; } else sr.style.display='none'; }
   const cr=$('#cunrow'); if(cr){ if(G.cunning>0){ cr.style.display=''; $('#cunv').textContent=G.cunning; } else cr.style.display='none'; }
   $('#exitsv').textContent=G.exits.length?G.exits.join(' · '):'—'; $('#locv').textContent=G.location;
@@ -1167,15 +1205,20 @@ function renderDetail(src){
   if(it.hp) stats.push(`Vitality <b>+${it.hp}</b>`);
   if(it.use==='heal') stats.push(`Heals <b>${it.amount}</b> vitality`);
   if(it.use==='dmg') stats.push(`Damage <b>+${it.boost}</b> for ${it.turns} turns`);
+  if(it.type==='water') stats.push(`Quenches <b>+${it.thirst}</b> thirst`);
+  if(it.type==='food'){ stats.push(`Restores <b>+${it.hunger}</b> hunger`); if(it.hp) stats.push(`Vitality <b>+${it.hp}</b>`); }
+  if(it.type==='bandage') stats.push(`Stops bleeding · Vitality <b>+${it.hp}</b>`);
   if(it.type==='coins') stats.push(`Worth <b>${it.amount}</b> gold`);
   if(it.value) stats.push(`Value <b>${it.value}</b>g`);
   const worn = it.slot && G.worn[it.slot] && G.worn[it.slot].id===it.id;
+  const useLabel={potion:'Drink',water:'Drink',food:'Eat',bandage:'Bind'}[it.type];
+  const kindLabel={potion:'Potion',water:'Water',food:'Food',bandage:'Aid'}[it.type]||'';
   let actions='';
   if(it.type==='coins') actions=`<button data-act="collect">Collect</button>`;
-  else if(it.type==='potion') actions=`<button data-act="use">Drink</button><button class="ghost" data-act="drop">Drop</button>`;
+  else if(useLabel) actions=`<button data-act="use">${useLabel}</button><button class="ghost" data-act="drop">Drop</button>`;
   else if(it.slot) actions = worn?`<button data-act="unequip">Unequip</button>`:`<button data-act="equip">Equip</button><button class="ghost" data-act="drop">Drop</button>`;
   d.innerHTML=`<div class="dt-name r-${it.rarity}">${svg(it.icon,it.rarity,22)} ${esc(it.name)}</div>
-    <div class="dt-meta"><span class="r-${it.rarity}">${RARITY[it.rarity].label}</span>${it.slot?` · ${SLOT_LBL[it.slot]}`:it.type==='potion'?' · Potion':''}</div>
+    <div class="dt-meta"><span class="r-${it.rarity}">${RARITY[it.rarity].label}</span>${it.slot?` · ${SLOT_LBL[it.slot]}`:kindLabel?` · ${kindLabel}`:''}</div>
     <div class="dt-stats">${stats.join('<br>')||'—'}</div>
     <div class="dt-actions">${actions}</div>`;
   d.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',()=>itemAction(b.getAttribute('data-act'))));
@@ -1201,10 +1244,25 @@ function unequip(slot){
   const it=G.worn[slot]; if(!it) return; G.worn[slot]=null; G.bag.push(it);
   recompute(); line(`You remove the ${esc(it.name)}.`,'sys'); hud(); renderDetail('bag');
 }
-function usePotion(it){
-  if(it.use==='heal'){ const h=Math.min(it.amount,G.maxHp-G.hp); G.hp+=h; line(`You drink the ${esc(it.name)} and recover <span class="good">${h}</span> vitality.`,'good'); }
-  else { G.dmgBuff=it.boost; G.buffTurns=it.turns; line(`You drink the ${esc(it.name)}. Your blows will strike <span class="boss">+${it.boost}</span> harder for ${it.turns} turns!`,'good'); }
-  removeBag(it.id); G.sel=null; hud(); renderDetail('bag');
+function usePotion(it){ useConsumable(it); }
+function useConsumable(it){
+  if(it.type==='potion'){
+    if(it.use==='heal'){ const h=Math.min(it.amount,G.maxHp-G.hp); G.hp+=h; line(`You drink the ${esc(it.name)} and recover <span class="good">${h}</span> vitality.`,'good'); }
+    else { G.dmgBuff=it.boost; G.buffTurns=it.turns; line(`You drink the ${esc(it.name)}. Your blows will strike <span class="boss">+${it.boost}</span> harder for ${it.turns} turns!`,'good'); }
+  } else if(it.type==='water'){
+    const before=G.thirst; G.thirst=Math.min(G.maxThirst,G.thirst+it.thirst); SFX.play('gold');
+    line(`You drink the ${esc(it.name)} — thirst eased by <span class="good">${Math.round(G.thirst-before)}</span>.`,'good');
+  } else if(it.type==='food'){
+    const before=G.hunger; G.hunger=Math.min(G.maxHunger,G.hunger+it.hunger);
+    let msg=`You eat the ${esc(it.name)} — hunger eased by <span class="good">${Math.round(G.hunger-before)}</span>`;
+    if(it.hp){ const h=Math.min(it.hp,G.maxHp-G.hp); if(h>0){ G.hp+=h; msg+=`, vitality <span class="good">+${h}</span>`; } }
+    line(msg+'.','good');
+  } else if(it.type==='bandage'){
+    if(G.bleed>0){ G.bleed=0; line(`You bind your wounds with the ${esc(it.name)} — the bleeding stops.`,'good'); }
+    else line(`You wrap the ${esc(it.name)} around a scrape.`,'sys');
+    if(it.hp){ const h=Math.min(it.hp,G.maxHp-G.hp); if(h>0){ G.hp+=h; } }
+  }
+  removeBag(it.id); G.sel=null; recompute(); hud(); renderDetail('bag');
 }
 
 // add loot items (objects) with on-screen chips
@@ -1221,12 +1279,45 @@ function grantLoot(items){
   if(items.some(i=>i.type!=='coins')) SFX.play('loot');
   recompute(); hud();   // refresh satchel/stats immediately (loot can arrive on a delay)
 }
+// loot from a slain foe — biased toward dropping their weapon
+function killLoot(depth, boss){
+  const out=genLoot(boss?'boss':'normal', depth);
+  if(Math.random()<0.6) out.push(makeGear('weapon', rollRarity(boss?'boss':'normal'), depth));
+  return out;
+}
+// ---------- survival: drain + bleed + starvation, once per turn ----------
+function endOfTurn(){
+  if(G.over) return;
+  G.thirst=Math.max(0,G.thirst-SURV.thirstDrain);
+  G.hunger=Math.max(0,G.hunger-SURV.hungerDrain);
+  let dmg=0; const msgs=[];
+  if(G.bleed>0){ dmg+=SURV.bleedDmg; G.bleed--; msgs.push(`<span class="dmg">🩸 You are bleeding (−${SURV.bleedDmg}).</span>`); SFX.play('hurt'); }
+  if(G.thirst<=0){ dmg+=SURV.starveDmg; msgs.push(`<span class="dmg">💧 Parched with thirst (−${SURV.starveDmg}).</span>`); }
+  if(G.hunger<=0){ dmg+=SURV.starveDmg; msgs.push(`<span class="dmg">🍖 Starving (−${SURV.starveDmg}).</span>`); }
+  if(dmg>0) G.hp=Math.max(0,G.hp-dmg);
+  if(G.thirst>0 && G.thirst<=20 && !G._tw){ msgs.push('<span class="sys">Your throat is parched — find water soon.</span>'); G._tw=true; } if(G.thirst>20) G._tw=false;
+  if(G.hunger>0 && G.hunger<=20 && !G._hw){ msgs.push('<span class="sys">Your stomach aches with hunger — you must eat.</span>'); G._hw=true; } if(G.hunger>20) G._hw=false;
+  if(msgs.length) line(msgs.join(' '), dmg>0?'dmg':'sys');
+  hud();
+  if(G.hp<=0 && !G.over) endGame('Your body fails you in the wilds. The realm claims another nameless adventurer.');
+}
+// drinking straight from a natural water source (text-driven)
+function isDrinkWater(cmd){
+  const c=cmd.toLowerCase();
+  if(!/\b(drink|sip|gulp|quench|slake|quaff|swig)\b/.test(c)) return false;
+  if(/\b(potion|elixir|draught|brew|tonic|philtre|flask of|vial of)\b/.test(c)) return false;
+  return /\b(river|stream|creek|brook|rivulet|fountain|well|spring|lake|pond|pool|waterfall|water|waterskin|trough|cistern)\b/.test(c);
+}
+function drinkFromSource(){
+  const before=G.thirst; G.thirst=G.maxThirst; SFX.play('gold');
+  line(`You cup your hands and drink deep — your thirst is quenched (<span class="good">+${Math.round(G.thirst-before)}</span>).`,'good'); hud();
+}
 
 // ---------- start ----------
 async function beginGame(){
   SFX.init();   // unlock audio on this user gesture
   $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#charCreate').style.display='none'; $('#game').style.display='flex';
-  if(!G._resumed){ G.bag=[]; G.worn={}; G.equipHp=0; G.atk=0; G.def=0; }   // spawn empty-handed: no gear, weak unarmed damage
+  if(!G._resumed){ G.bag=[]; G.worn={}; G.equipHp=0; G.atk=0; G.def=0; G.hunger=G.maxHunger; G.thirst=G.maxThirst; G.bleed=0; }   // spawn empty-handed: no gear, weak unarmed damage, well-fed
   recompute(); hud(); renderProfile(); $('#cmd').focus();
   if(G.cfg.demo){ $('#modeTag').textContent='OFFLINE DEMO · procedural'; demoStart(); return; }
   // Detect a local proxy (server.py keeps the key server-side). If none exists
@@ -1256,6 +1347,7 @@ function submitCommand(){
   if(low==='clear'){ $('#log').innerHTML=''; return; }
   if(/^(buy|purchase|barter)\b/.test(low) || low==='buy it' || (G.merchant && /^trade\b/.test(low))){ tryBuy(); return; }
   if(handleGearCommand(low)) return;     // equip / wear / unequip / drink handled here
+  if(isDrinkWater(low)){ drinkFromSource(); endOfTurn(); return; }   // drink from a river/well/etc — resolved locally (no API call)
   if(G.cfg.demo) demoTurn(raw); else aiTurn(raw);
 }
 // typed inventory commands so "wear the steel helm" actually equips it into the Equipment tab
@@ -1298,13 +1390,15 @@ function systemPrompt(){
   const seed=G.cfg.seed?`\nThe player seeded this realm with: "${G.cfg.seed}". Honour that flavour.`:'';
   return `You are the GAME MASTER of TORKED, a medieval-fantasy text adventure in the spirit of Zork — dry wit, vivid second-person prose, monsters and magic. Keep the world CONSISTENT using the STATE block each turn.
 
-WORLD: This is an open medieval LAND, not an underground dungeon. The player journeys OVERLAND — through forests, moors, roads, rivers, fields, villages, markets, ruins, coastlines and hills. They travel by direction (north/south/east/west) and along roads/paths. They may ENTER discrete places when it fits the scene — a cave, a castle, a watchtower, a crypt, a tavern, a mine — and later leave them again. Do NOT make the game an endless descent: only "go down"/descend when there is a REAL, specific place to enter (a castle cellar, a mine, a barrow). Most movement is across the surface and into/out of named locations.
+WORLD: This is an open medieval LAND, not an underground dungeon. The player journeys OVERLAND — through forests, moors, roads, rivers, fields, coastlines and hills. They travel by direction (north/south/east/west) and along roads/paths. They may ENTER discrete places when it fits the scene, then leave again. Use a WIDE VARIETY of location types, not just watchtowers: castles and keeps, walled cities and bustling towns, villages and hamlets, creeks, rivers and fords, mountains and high passes, caves and grottoes, bandit hideouts and dens, war camps and roadside camps, ruins, crypts, barrows, mines, taverns, monasteries, mills, bridges, marshes, and forest depths. Vary it turn to turn. Do NOT make the game an endless descent: only "go down"/descend when there is a REAL, specific place to enter (a castle cellar, a mine, a barrow). Most movement is across the surface and into/out of named locations.
 STYLE: Address the player as "you". Write like classic Zork: plain, concrete, and a touch dry — not florid. 2–4 sentences. Lead with what is physically THERE (what you see, hear, smell) before any mood. Use specific nouns and strong verbs; do NOT stack adjectives, reach for grand or ornate vocabulary, or pad with flowery filler. Vary sentence length so it never reads as purple prose. Understatement and dry wit beat melodrama. Name locations like a parser game ("The Blackpine Crossroads", "Gate of Ashford Keep"). Offer overland exits AND entrances to nearby places. Reward exploration and clever, specific actions. Introduce wildlife, bandits, beasts, the occasional powerful BOSS, hidden treasure CHESTS, hermits and merchants.${seed}${charDesc()}
 PERIL: ${peril}
 
 STARTING STATE: The player begins UNARMED and owns NOTHING — no weapon, no armour, an empty satchel. Their bare-handed blows are weak. Never describe them as already equipped or armed at the start; every weapon, piece of armour and item must be found, looted, bought, or taken during play. Check the STATE worn/satchel lists — those are the only things they have.
 LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". You MAY narrate treasure flavour, but the game generates the actual items.
 COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given. Whenever a creature or boss is fighting the player set "in_combat": true and fill "enemy" with its name, current hp, max_hp and attack so the GAME can show its health bar; LOWER enemy.hp as the player wounds it, and when it dies or the fight ends set "in_combat": false (and "boss_defeated": true if it was a boss).
+SURVIVAL (hunger, thirst, bleeding — the GAME owns the numbers): The player has HUNGER and THIRST (shown in STATE) that slowly drain as they travel. They restore them by eating food and drinking water they carry, OR by drinking straight from a natural source. When the player drinks clean water from a river, stream, creek, brook, well, spring, fountain, lake or waterfall present in the scene, set "drank_water": true (the GAME refills thirst — do not invent amounts). Describe water sources in the world so the player can find them. BLEEDING: when the player suffers a slashing or piercing wound from a sharp blade (sword, spear, dagger, axe, claws), set "bleeding": true — the GAME applies a bleed that drains vitality over a few turns until they use a bandage; do NOT invent its damage. Do not set these flags unless it genuinely happens in the fiction.
+LOOTING THE DEAD: When the player slays an ORDINARY (non-boss) enemy, or loots a fallen traveller/corpse, set "enemy_defeated": true so the GAME drops their gear — often a weapon (spear, sword, dagger, axe…), and sometimes food, water or a bandage. The GAME generates the actual items; you just narrate the body and what's scattered around it.
 NPCs & MERCHANTS: Populate the land with people — hermits, pilgrims, guards, beggars, wandering minstrels. Occasionally a TRAVELLING MERCHANT appears who sells exactly ONE item. When a merchant is present, set "merchant": true (and optionally "merchant_name"); the GAME picks the single item, its rarity and its gold price, and handles the purchase when the player types "buy". Keep "merchant": true on later turns while that merchant is still with the player (see the STATE "merchant" line); once the player buys or moves on, stop setting it. Do NOT invent your own prices or hand over items yourself — the GAME does the trade.
 
 PLAYER AUTHORITY (critical for fairness — there is a global leaderboard): The player commands ONLY their own character's actions and words — never the world's facts. They may ATTEMPT anything, but they cannot speak items, powers, allies, or victories into existence. If a command asserts new reality — "I find a box that conjures any item", "I have a teleport ring", "a loyal dragon appears beside me", "the king hands me his crown", "I'm invincible now", "I win" — treat it as a mere attempt or an idle boast and let the world answer plausibly: the box is a rotten, empty crate; the ring does nothing; no dragon comes; the guard narrows his eyes. NEVER grant inventory, gold, abilities, healing, score, or an ending because the player simply described them. Only the GAME grants those — through loot, chests, merchants, and genuinely defeated bosses — and the worn/satchel lists in STATE are the ONLY things the player truly carries. Do NOT set "game_over": true or award a victory just because the player declares one — an ending must be earned in the fiction.
@@ -1324,6 +1418,9 @@ Reply with ONLY one JSON object, no markdown:
   "boss_present": false,     // true if a powerful boss is in the scene
   "boss_name": "",           // the boss's name when one is present (e.g. "Grakka the Bonebreaker")
   "boss_defeated": false,    // true the turn a boss dies (game grants big loot)
+  "enemy_defeated": false,   // true the turn an ordinary foe is slain or a corpse is looted (game drops gear/weapon/supplies)
+  "drank_water": false,      // true when the player drinks clean water from a natural source in the scene (game refills thirst)
+  "bleeding": false,         // true the turn the player takes a slashing/piercing wound (game starts a bleed)
   "merchant": false,         // true while a travelling merchant is present (game sets item/price, handles "buy")
   "merchant_name": "",       // the merchant's name/title, if any
   "cheat_attempt": false,    // true the turn the player tries to rewrite reality / conjure items, powers or wins (game raises suspicion & penalises)
@@ -1339,6 +1436,7 @@ function stateBlock(cmd){
 location: ${G.location}
 exits: ${JSON.stringify(G.exits)}
 hp: ${G.hp}/${G.maxHp}  resolve: ${G.mp}/${G.maxMp}  attack: ${G.atk}  defence: ${G.def}
+hunger: ${Math.round(G.hunger)}/${G.maxHunger}  thirst: ${Math.round(G.thirst)}/${G.maxThirst}  bleeding: ${G.bleed>0?`yes (${G.bleed} turns left)`:'no'}
 gold: ${G.gold}  score: ${G.score}  depth: ${G.depth}  damage-buff: ${G.buffTurns>0?G.dmgBuff:0}
 worn: ${worn}
 satchel: ${bag}
@@ -1419,11 +1517,15 @@ async function applyTurn(raw,cmd){
   await typeLine(o.narration||'', o.hp_delta<0?'dmg':'');
   if(TTS.on) TTS.speak(o.narration||'');
   if(_showMerch) showMerchant();
+  // survival signals from the GM
+  if(o.drank_water===true){ G.thirst=G.maxThirst; }
+  if(o.bleeding===true && G.bleed<=0){ G.bleed=SURV.bleedTurns; SFX.play('hurt'); line('<span class="dmg">🩸 A blade opens a bleeding wound! Bind it with a bandage.</span>','dmg'); }
   // loot & bosses (game-controlled)
-  if(o.boss_defeated){ const sc=120+G.depth*45; G.score+=sc; line(`<span class="boss">The boss falls! +${sc} score.</span>`,'boss'); grantLoot(genLoot('boss',G.depth)); }
+  if(o.boss_defeated){ const sc=120+G.depth*45; G.score+=sc; line(`<span class="boss">The boss falls! +${sc} score.</span>`,'boss'); grantLoot(killLoot(G.depth,true)); }
+  else if(o.enemy_defeated===true){ line('<span class="good">Your foe falls. You rifle through what they dropped.</span>','good'); grantLoot(killLoot(G.depth,false)); }
   else if(o.chest){ SFX.play('chest'); setTimeout(()=>grantLoot(genLoot('chest',G.depth)),650); }
-  recompute(); hud();
-  if(G.hp<=0||o.game_over===true){ endGame(o.ending||(G.hp<=0?'You have died. The realm closes over you.':'Your tale ends here.')); }
+  recompute(); endOfTurn();
+  if(!G.over && o.game_over===true){ endGame(o.ending||'Your tale ends here.'); }
 }
 function endGame(msg){ G.over=true; clearSave(); line(esc(msg),'death'); line(`Final score: ${G.score} · Travels ${G.depth} · Gold ${G.gold}`,'sys'); line('Reload to forge a new realm.','sys'); $('#cmd').disabled=true;
   const nm=(G.char&&G.char.name)||'Wanderer'; submitScore(nm, G.score);
@@ -1434,10 +1536,10 @@ function endGame(msg){ G.over=true; clearSave(); line(esc(msg),'death'); line(`F
 //  OFFLINE DEMO — exercises every system (loot, rarity, bosses, potions,
 //  armour, equipment) with no key. The live game is far richer.
 // =====================================================================
-const D={adj:['Blackpine','Misty','Windswept','Thornwood','Greymoor','Old','Briar','Sunlit','Ruined','Hollow'],
-  place:['Crossroads','Forest Path','Open Moor','Riverside','Green Hill','Wildflower Meadow','Village Edge','Old Stone Bridge','Standing Stones','Hilltop Watch'],
-  enter:['A Moss-grown Cave Mouth','The Gates of a Crumbling Keep','A Roadside Tavern','An Abandoned Watchtower','A Barrow Beneath the Hill',"A Hermit's Hut"],
-  detail:['Birdsong drifts through the trees and the wind smells of coming rain.','A weathered signpost points toward distant rooftops.','Wildflowers nod over the ruins of an old boundary wall.','Smoke rises from a chimney somewhere beyond the treeline.','Crows watch you from a leaning, lightning-split oak.'],
+const D={adj:['Blackpine','Misty','Windswept','Thornwood','Greymoor','Old','Briar','Sunlit','Ruined','Hollow','Frosted','Ashen','Wolf','Raven'],
+  place:['Crossroads','Forest Path','Open Moor','Riverside','Green Hill','Mountain Pass','Babbling Creek','Pine Valley','Wildflower Meadow','Village Outskirts','Old Stone Bridge','Standing Stones','Marsh Track','Coastal Cliffs','River Ford'],
+  enter:['A Moss-grown Cave Mouth','The Gates of a Crumbling Castle','A Walled City Gate','A Bustling Village Square','A Roadside Tavern','A Bandit Hideout','A Smoke-wreathed War Camp','An Abandoned Watchtower','A Barrow Beneath the Hill','A Deep Mountain Cave',"A Hermit's Hut",'A Riverside Mill','A Ruined Monastery'],
+  detail:['Birdsong drifts through the trees and the wind smells of coming rain.','A weathered signpost points toward distant rooftops.','A clear creek chuckles over stones nearby — fresh water.','Wildflowers nod over the ruins of an old boundary wall.','Smoke rises from a chimney somewhere beyond the treeline.','A mossy stone well stands at the path’s edge.','Crows watch you from a leaning, lightning-split oak.','Snow-capped peaks loom grey against the horizon.'],
   foe:['a snarling wolf','a ragged bandit','a wild boar','a lurching ghoul','a giant forest spider'],
   boss:['Grakka the Bonebreaker','the Briar Witch','Sir Mordrec the Fallen','the Great Stag-Wyrm']};
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -1490,10 +1592,12 @@ async function demoTurn(raw){
     if(G.foe.hp<=0){
       const boss=G.foe.boss, sc=boss?(120+G.depth*45):(8+G.depth*3); G.score+=sc;
       line(`${die}You hit for ${dmg}. ${cap(G.foe.name)} falls! <span class="${boss?'boss':'good'}">+${sc} score.</span>`, boss?'boss':'good');
-      grantLoot(genLoot(boss?'boss':'normal',G.depth)); G.foe=null; hud(); return;
+      grantLoot(killLoot(G.depth, boss)); G.foe=null; hud(); return;
     }
     const back=Math.max(1, ri(1,G.foe.atk)-Math.floor(G.def/2)); G.hp=Math.max(0,G.hp-back); SFX.play('hurt');
-    line(`${die}You hit for ${dmg}; ${G.foe.name} (${Math.max(0,G.foe.hp)} hp) rakes you for ${back}.`, crit?'good':'dmg'); hud();
+    let bleedMsg='';
+    if(G.bleed<=0 && Math.random()<0.28){ G.bleed=SURV.bleedTurns; bleedMsg=' <span class="dmg">🩸 Its blade opens a bleeding gash!</span>'; }
+    line(`${die}You hit for ${dmg}; ${G.foe.name} (${Math.max(0,G.foe.hp)} hp) rakes you for ${back}.${bleedMsg}`, crit?'good':'dmg'); hud();
     if(G.hp<=0) endGame('Your vitality fails. The realm claims another nameless adventurer.');
     return;
   }
@@ -1511,7 +1615,7 @@ async function demoTurn(raw){
     line(rnd(D.detail)+(G.chestHere?' A treasure chest waits here.':'')+(G.foe?` ${cap(G.foe.name)} watches you.`:''),''); return;
   }
   line('The demo understands: <span class="sys">go north · enter the cave · open chest · attack · drink a potion · rest · look</span>. The live game understands anything.','sys');
-  } finally { G.busy=false; $('#cmd').focus(); }
+  } finally { G.busy=false; endOfTurn(); $('#cmd').focus(); }
 }
 function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
