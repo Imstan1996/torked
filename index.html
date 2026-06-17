@@ -1579,6 +1579,8 @@ PLAYER COMMAND: ${cmd==='__begin__'?'(Begin the adventure out in the open land �
 }
 async function aiTurn(cmd){
   G.busy=true; G.turn++;
+  // self-heal: older saves may carry a Cerebras model id its free endpoint no longer serves
+  try{ if(G.cfg.provider==='cerebras'){ const valid=PROVIDERS.cerebras.models.map(m=>m[0]); if(!valid.includes(G.cfg.model)){ G.cfg.model='gpt-oss-120b'; $('#modeTag').textContent=`LIVE · CEREBRAS · ${G.cfg.model}${G.useProxy?'':' · direct'}`; } } }catch(e){}
   // d6 critical-strike roll on attacks: a 6 = critical hit (5x weapon damage)
   let dice='';
   if(cmd!=='__begin__' && /attack|strike|fight|hit|slay|stab|kill|swing|cast|shoot|fire/i.test(cmd)){
