@@ -330,15 +330,15 @@
     <div class="howto">
       <div class="howto-title">Get your free key — 30 seconds, no card</div>
       <ol>
-        <li>Tap the gold button below to open <b>Google AI Studio</b>, and sign in with your Google account.</li>
-        <li>Click <b>Create API key</b> (accept the terms if asked) — a key starting with <b>AIza…</b> appears.</li>
-        <li><b>Copy</b> it and paste it in the box below. That's it — it's free, ~1,500 plays a day, no card.</li>
+        <li>Tap the gold button below to open <b>Cerebras Cloud</b>, and sign in (Google, GitHub or email).</li>
+        <li>Go to <b>API Keys</b>, click <b>Create API Key</b>, give it any name — a key starting with <b>csk-…</b> appears.</li>
+        <li><b>Copy</b> it and paste it in the box below. It's free, ~1,000,000 tokens a day, no card.</li>
       </ol>
-      <a class="getkey" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">🔑 Get my free Gemini key →</a>
+      <a class="getkey" href="https://cloud.cerebras.ai" target="_blank" rel="noopener">🔑 Get my free Cerebras key →</a>
     </div>
 
-    <label for="obKey">Paste your Gemini key here</label>
-    <input id="obKey" type="password" placeholder="AIza..." autocomplete="off" />
+    <label for="obKey">Paste your Cerebras key here</label>
+    <input id="obKey" type="password" placeholder="csk-..." autocomplete="off" />
     <div class="btns"><button id="obBegin">Begin your quest</button></div>
     <div class="hint" style="margin-top:14px">
       <a id="obDemo" style="cursor:pointer;color:var(--gold)">Try the offline demo first</a>
@@ -370,7 +370,8 @@
 
     <label for="provider">Engine</label>
     <select id="provider">
-      <option value="gemini" selected>Google Gemini — FREE, 1,500/day (recommended)</option>
+      <option value="cerebras" selected>Cerebras — FREE, ~1M tokens/day, fastest (recommended)</option>
+      <option value="gemini">Google Gemini — FREE, ~1,500 plays/day</option>
       <option value="ollama">Ollama — FREE, local &amp; unlimited (no key)</option>
       <option value="groq">Groq — FREE cloud key, very fast</option>
       <option value="hf">Hugging Face — uses your Pro credits</option>
@@ -620,6 +621,9 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'17 Jun 2026', title:'Faster Engine', items:[
+   'Recommended engine switched to Cerebras — free, ~1,000,000 tokens a day, and lightning fast',
+   'Grab a free key at cloud.cerebras.ai; Gemini, Groq and local Ollama are still available too']},
  {date:'17 Jun 2026', title:'It Remembers', items:[
    'The world now remembers ordinary objects you pick up — a stone, a torch, a rope',
    'Using something you took earlier is no longer mistaken for cheating',
@@ -985,6 +989,9 @@ const SURV={ hungerDrain:1, thirstDrain:2, starveDmg:2, bleedDmg:2, bleedTurns:4
 
 // ---------- provider presets ----------
 const PROVIDERS = {
+  cerebras:{base:'https://api.cerebras.ai/v1',needsKey:true,keyLabel:'Cerebras API key',keyPh:'csk-...',
+    models:[['llama-3.3-70b','Llama 3.3 70B — smart & blazing fast (recommended)'],['llama-4-scout-17b-16e-instruct','Llama 4 Scout 17B — newer'],['llama3.1-8b','Llama 3.1 8B — fastest'],['qwen-3-32b','Qwen 3 32B']],
+    hint:'Free, ~1,000,000 tokens/day, no card. Key at <a href="https://cloud.cerebras.ai" target="_blank" rel="noopener">cloud.cerebras.ai</a>.'},
   groq:{base:'https://api.groq.com/openai/v1',needsKey:true,keyLabel:'Groq API key',keyPh:'gsk_...',
     models:[['openai/gpt-oss-120b','GPT-OSS 120B — fast & sharp (recommended)'],['llama-3.3-70b-versatile','Llama 3.3 70B Versatile'],['llama-3.1-8b-instant','Llama 3.1 8B Instant — fastest'],['qwen/qwen3-32b','Qwen3 32B']],
     hint:'Free, no credit card. Key at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.'},
@@ -1005,7 +1012,7 @@ function applyProvider(name){
   $('#keyWrap').style.display=p.needsKey?'block':'none'; $('#providerHint').innerHTML=p.hint;
 }
 $('#provider').addEventListener('change',e=>{ applyProvider(e.target.value); });
-applyProvider('gemini');
+applyProvider('cerebras');
 
 // remember engine + key across sessions (stored locally in this browser only)
 const LS_KEY='torked_cfg_v1';
@@ -1081,12 +1088,12 @@ function startLive(){
 }
 $('#startBtn').addEventListener('click',startLive);
 
-// ---- first-run onboarding ("tunnel"): grab a free Gemini key and go ----
+// ---- first-run onboarding ("tunnel"): grab a free Cerebras key and go ----
 $('#obBegin').addEventListener('click',()=>{
-  $('#provider').value='gemini'; applyProvider('gemini');
-  $('#model').value='gemini-2.5-flash-lite';
+  $('#provider').value='cerebras'; applyProvider('cerebras');
+  $('#model').value='llama-3.3-70b';
   $('#key').value=$('#obKey').value.trim();
-  if(!startLive()){ $('#obKey').focus(); $('#obKey').placeholder='paste your AIza... key here to begin'; }
+  if(!startLive()){ $('#obKey').focus(); $('#obKey').placeholder='paste your csk- key here to begin'; }
 });
 $('#obKey').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#obBegin').click(); });
 $('#obDemo').addEventListener('click',()=>{ $('#onboard').style.display='none'; $('#demoBtn').click(); });
@@ -1095,7 +1102,7 @@ $('#obAdv').addEventListener('click',()=>{ $('#onboard').style.display='none'; $
 // show the simple onboarding only on a fresh first visit (no remembered key, not file://)
 if(!isFile){
   $('#setup').style.display='none'; $('#onboard').style.display='block';   // simplified instructions screen is the default login, always
-  if($('#provider').value==='gemini'){ const k=$('#key').value.trim(); if(k) $('#obKey').value=k; }   // prefill remembered Gemini key
+  if($('#provider').value==='cerebras'){ const k=$('#key').value.trim(); if(k) $('#obKey').value=k; }   // prefill remembered Cerebras key
 }
 $('#demoBtn').addEventListener('click',()=>{
   G.cfg={provider:'',base_url:'',token:'',model:'',difficulty:$('#diff').value,seed:$('#seed').value.trim(),demo:true};
@@ -1588,7 +1595,8 @@ async function aiTurn(cmd){
       line('<span class="boss">⚡ A rare event stirs the realm…</span>','boss'); }
   }
   const ghost=line('the realm stirs…','sys');
-  const messages=[{role:'system',content:systemPrompt()}].concat(G.history.slice(-12)).concat([{role:'user',content:stateBlock(cmd)+dice}]);
+  const HIST = (G.cfg.provider==='cerebras') ? 4 : 12;   // Cerebras free tier has an 8K context cap — keep the rolling history short (persistent state still goes every turn)
+  const messages=[{role:'system',content:systemPrompt()}].concat(G.history.slice(-HIST)).concat([{role:'user',content:stateBlock(cmd)+dice}]);
   try{
     const payload={model:G.cfg.model,messages,max_tokens:900,temperature:0.9};
     const res = G.useProxy
