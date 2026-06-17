@@ -256,8 +256,10 @@
 
   /* rarity helpers */
   .r-common{color:var(--r-common)}.r-rare{color:var(--r-rare)}.r-epic{color:var(--r-epic)}.r-legendary{color:var(--r-legendary)}
+  .r-mythic{color:var(--r-mythic);text-shadow:0 0 8px rgba(255,94,77,.55);font-weight:700}
   .b-common{border-color:var(--r-common)!important}.b-rare{border-color:var(--r-rare)!important}
   .b-epic{border-color:var(--r-epic)!important}.b-legendary{border-color:var(--r-legendary)!important;box-shadow:0 0 9px rgba(244,166,35,.5)}
+  .b-mythic{border-color:var(--r-mythic)!important;box-shadow:0 0 12px rgba(255,94,77,.65)!important}
 
   aside{width:300px;flex-shrink:0;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);
     border-radius:10px;padding:14px;font-size:14px;align-self:flex-start;position:sticky;top:0;max-height:calc(100vh - 90px);overflow-y:auto}
@@ -294,7 +296,8 @@
   .bagempty{color:var(--ink-dim);font-style:italic;text-align:center;padding:14px 0}
   .oddments{margin-top:10px;border-top:1px solid var(--line);padding-top:9px}
   .oddments .od-h{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px}
-  .oddments .od-chip{display:inline-block;font-size:11.5px;color:var(--ink);background:#171107;border:1px solid var(--line);border-radius:12px;padding:3px 9px;margin:0 5px 5px 0}
+  .oddments .od-chip{display:inline-block;font-size:11.5px;color:var(--ink);background:#171107;border:1px solid var(--line);border-radius:12px;padding:3px 9px;margin:0 5px 5px 0;cursor:pointer;transition:.12s}
+  .oddments .od-chip:hover{border-color:var(--gold);color:var(--gold-bright)}
 
   /* equipment OSRS layout */
   .eqwrap{display:flex;flex-direction:column;align-items:center}
@@ -503,8 +506,11 @@
           <div class="bar thirst"><i id="thirstbar" style="width:100%"></i></div>
           <div class="combatgrid">
             <div class="stat" id="bleedrow" style="display:none"><span title="A bleeding wound drains vitality each turn. Bind it with a bandage.">🩸 Bleeding</span><span class="v dmg" id="bleedv">0</span></div>
-            <div class="stat"><span>Attack</span><span class="v" id="atkv">0</span></div>
-            <div class="stat"><span>Defence</span><span class="v" id="defv">0</span></div>
+            <div class="stat"><span id="atklbl">⚔ Attack</span><span class="v" id="atkv">0</span></div>
+            <div class="stat" id="magicrow" style="display:none"><span>✨ Magic</span><span class="v" id="magicv">0</span></div>
+            <div class="stat" id="rangedrow" style="display:none"><span>🏹 Ranged</span><span class="v" id="rangedv">0</span></div>
+            <div class="stat"><span>🛡 Defence</span><span class="v" id="defv">0</span></div>
+            <div class="stat" id="ammorow" style="display:none"><span>🪶 Arrows</span><span class="v" id="ammov">0</span></div>
             <div class="stat"><span>Gold</span><span class="v" id="goldv">0</span></div>
             <div class="stat"><span>Score</span><span class="v" id="scorev">0</span></div>
             <div class="stat"><span>Travels</span><span class="v" id="depthv">0</span></div>
@@ -593,7 +599,6 @@
         <div class="tts-engines">
           <label><input type="radio" name="ttsEng" value="browser"> <b>Basic</b> — free &amp; instant (your device's built-in voice)</label>
           <label><input type="radio" name="ttsEng" value="kokoro"> <b>Realistic AI — free, no key</b> · runs in your browser (one-time ~80&nbsp;MB download)</label>
-          <label><input type="radio" name="ttsEng" value="openai"> <b>OpenAI</b> — most expressive &amp; reactive (your API key, pennies per session)</label>
         </div>
 
         <div id="kkBox" style="display:none">
@@ -608,23 +613,7 @@
           </select>
           <div class="tts-note">First time you turn this on it downloads a small AI model (cached after). Best on a recent browser; falls back to the basic voice if unsupported.</div>
         </div>
-
-        <div id="oaBox" style="display:none">
-          <label for="ttsKey">OpenAI API key (starts with sk-)</label>
-          <input id="ttsKey" type="password" placeholder="sk-..." autocomplete="off" />
-          <label for="ttsVoice">OpenAI voice</label>
-          <select id="ttsVoice">
-            <option value="ash">Ash — expressive, dramatic (recommended)</option>
-            <option value="ballad">Ballad — warm storyteller</option>
-            <option value="onyx">Onyx — deep &amp; commanding</option>
-            <option value="sage">Sage — calm, wise</option>
-            <option value="fable">Fable — characterful narrator</option>
-            <option value="verse">Verse — lively</option>
-            <option value="coral">Coral — bright</option>
-            <option value="nova">Nova — clear</option>
-          </select>
-          <div class="tts-note">Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a> — needs a little API billing (separate from ChatGPT Plus). 🔒 Stored only in this browser.</div>
-        </div>
+        <input id="ttsKey" type="hidden" value=""><select id="ttsVoice" style="display:none"></select>
 
         <div class="tts-row" style="justify-content:flex-end">
           <button id="ttsSave">Save &amp; test ▸</button>
@@ -698,6 +687,14 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'17 Jun 2026', title:'Magic, Bows & Mega Bosses', items:[
+   'Mega bosses appear after 100 turns — a metallic dragon, archmage, lich-king and more, brutally hard but beatable',
+   'Each mega boss drops one unique MYTHIC item from its own set (Draconic, Arcane, Necrotic…) — stronger than legendary',
+   'New ways to fight: magic (staffs, wands, robes) and archery (bows + an arrows slot), each with its own damage',
+   'Dozens of new weapons, shields, armour and helmets',
+   'Eat, drink or equip the odds-and-ends you pick up — stew restores hunger, a found dagger can be wielded (as common)',
+   'Fixed: a cut-off AI reply no longer dumps raw text — the story still comes through',
+   'No teleporting, portals or instant-kill magic — those count as cheating']},
  {date:'17 Jun 2026', title:'Free Realistic Voice', items:[
    'New free AI narrator that runs entirely in your browser — no key, no cost',
    'Pick your voice engine in the ✨ panel: Basic, free in-browser AI, or OpenAI',
@@ -1008,6 +1005,7 @@ const RARITY = {
   rare:     {label:'Rare',      cls:'rare',      mult:1.70},
   epic:     {label:'Epic',      cls:'epic',      mult:2.60},
   legendary:{label:'Legendary', cls:'legendary', mult:4.20},
+  mythic:   {label:'Mythic',    cls:'mythic',    mult:5.60},   // only from mega bosses — strong but not OP
 };
 // drop weights (legendary deliberately scarce)
 const WEIGHTS = {
@@ -1039,14 +1037,14 @@ const ICON = {
   chest:'<path d="M4 9q8-6 16 0v9H4z"/><rect x="3" y="9" width="18" height="3"/><rect x="11" y="11" width="2" height="4" fill="#0b0905"/>',
   misc:'<circle cx="12" cy="12" r="7"/>',
 };
-const COLOR = {common:'#cdc7b6',rare:'#5aa0e0',epic:'#b277e6',legendary:'#f4a623'};
+const COLOR = {common:'#cdc7b6',rare:'#5aa0e0',epic:'#b277e6',legendary:'#f4a623',mythic:'#ff5e4d'};
 // keys that have a painted 2D art icon (icon-<key>.png in the folder)
-const IMG_ICONS = new Set(['weapon','head','body','legs','shield','hands','feet','ring','amulet','potion','coin','chest','staff','water','meat','bread','bandage','key']);
+const IMG_ICONS = new Set(['weapon','head','body','legs','shield','hands','feet','ring','amulet','potion','coin','chest','staff','wand','robe','bow','arrows','water','meat','bread','bandage','key']);
 function svgVec(name, rarity, size){   // always the simple vector silhouette (for empty slots)
   const c = COLOR[rarity]||'#cdc7b6';
   return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${c}" stroke="none">${ICON[name]||ICON.misc}</svg>`;
 }
-const ICON_EMOJI={weapon:'⚔️',head:'🪖',body:'🦺',legs:'👖',shield:'🛡️',hands:'🧤',feet:'🥾',ring:'💍',amulet:'📿',potion:'🧪',coin:'🪙',chest:'🧰',staff:'🪄',water:'💧',meat:'🍖',bread:'🍞',bandage:'🩹',key:'🗝️'};
+const ICON_EMOJI={weapon:'⚔️',head:'🪖',body:'🦺',legs:'👖',shield:'🛡️',hands:'🧤',feet:'🥾',ring:'💍',amulet:'📿',potion:'🧪',coin:'🪙',chest:'🧰',staff:'🪄',wand:'🪄',robe:'🥋',bow:'🏹',arrows:'🪶',water:'💧',meat:'🍖',bread:'🍞',bandage:'🩹',key:'🗝️'};
 function iconFallback(img,glyph){ try{ const s=document.createElement('span'); s.className='emoji-icon'; s.textContent=glyph; s.style.fontSize=Math.round((img.width||20)*0.92)+'px'; s.style.lineHeight='1'; img.replaceWith(s); }catch(e){} }
 function svg(name, rarity, size=26){
   if(IMG_ICONS.has(name)){ const g=ICON_EMOJI[name]||'📦'; return `<img class="art" src="icon-${name}.png" width="${size}" height="${size}" alt="" draggable="false" onerror="iconFallback(this,'${g}')">`; }
@@ -1055,34 +1053,70 @@ function svg(name, rarity, size=26){
 
 // ---------- item generation ----------
 const ADJ = {
-  common:['Worn','Rusted','Plain','Chipped','Crude'],
-  rare:['Steel','Tempered','Burnished','Honed','Knightly'],
-  epic:['Runed','Enchanted','Ebon','Glowing','Warforged'],
-  legendary:['Dragonbone','Godforged','Eternal','Mythril','Ancient'],
+  common:['Worn','Rusted','Plain','Chipped','Crude','Battered','Old','Notched','Dull','Pitted'],
+  rare:['Steel','Tempered','Burnished','Honed','Knightly','Fine','Hardened','Oaken','Polished','Reinforced'],
+  epic:['Runed','Enchanted','Ebon','Glowing','Warforged','Stormforged','Gilded','Vile','Glacial','Searing'],
+  legendary:['Dragonbone','Godforged','Eternal','Mythril','Ancient','Celestial','Wyrmscale','Sunforged','Voidsteel','Hallowed'],
+  mythic:['Worldbreaker','Astral','Cataclysmic','Primordial','Apocalyptic'],
 };
+// base names by kind (kind = generation type; many map onto the 'weapon'/'body'/'ammo' worn slots)
 const BASE = {
-  weapon:['Sword','Axe','Mace','Glaive','Dagger','Spear','Shortsword','Longsword','Halberd','Cleaver','War Club','Hatchet'],
-  head:['Helm','Coif','Greathelm','Hood'],
-  body:['Cuirass','Breastplate','Hauberk','Tunic'],
-  legs:['Greaves','Legguards','Chausses'],
-  shield:['Shield','Kiteshield','Bulwark'],
-  hands:['Gauntlets','Bracers','Gloves'],
-  feet:['Sabatons','War Boots','Treads'],
-  ring:['Ring','Band','Signet'],
-  amulet:['Amulet','Pendant','Talisman'],
+  weapon:['Sword','Axe','Mace','Glaive','Dagger','Spear','Shortsword','Longsword','Halberd','Cleaver','War Club','Hatchet','Broadsword','Falchion','Warhammer','Flail','Rapier','Scimitar','Bardiche','Greatsword','Battleaxe','Maul','Sabre','Pike','Morningstar','Khopesh'],
+  staff:['Staff','Quarterstaff','Runestaff','Battlestaff','Greatstaff','Stormstaff','Worldstaff'],
+  wand:['Wand','Rod','Sceptre','Focus','Conduit','Cinderwand'],
+  bow:['Shortbow','Longbow','Recurve Bow','Warbow','Hunter’s Bow','Composite Bow','Greatbow'],
+  head:['Helm','Coif','Greathelm','Hood','Barbute','Sallet','Bascinet','Circlet','Cowl','Visored Helm','War Mask','Crowned Helm'],
+  body:['Cuirass','Breastplate','Hauberk','Tunic','Brigandine','Platemail','Chainmail','Scale Mail','Lamellar','Field Plate'],
+  robe:['Robe','Vestments','Mantle','Cloak of Weaving','Arcane Robe','Sorcerer’s Garb','Mystic Shroud'],
+  legs:['Greaves','Legguards','Chausses','Tassets','Plate Legs','Cuisses','War Kilt'],
+  shield:['Shield','Kiteshield','Bulwark','Heater Shield','Tower Shield','Round Shield','Aegis','Pavise'],
+  hands:['Gauntlets','Bracers','Gloves','Vambraces','Mitts','War Gloves'],
+  feet:['Sabatons','War Boots','Treads','Greaved Boots','Striders','Warstompers'],
+  ring:['Ring','Band','Signet','Loop','Seal','Coil'],
+  amulet:['Amulet','Pendant','Talisman','Charm','Torc','Relic'],
+  arrows:['Arrows','Broadhead Arrows','Bodkin Arrows','Barbed Arrows','Hunting Arrows','Iron Arrows'],
 };
-const SLOTS = ['weapon','head','body','legs','shield','hands','feet','ring','amulet'];
+const SLOTS = ['weapon','head','body','legs','shield','hands','feet','ring','amulet','ammo'];
+// random gear kinds for drops (weapon weighted; magic/ranged/robe mixed in)
+const GEAR_KINDS=['weapon','weapon','weapon','head','body','legs','shield','hands','feet','ring','amulet','staff','wand','bow','robe'];
 let _idc=0; const uid=()=>'it'+(++_idc);
 
-function makeGear(slot, rarity, depth){
-  const m = RARITY[rarity].mult, d = depth||0;
-  const it = {id:uid(), slot, type:'gear', icon:slot, rarity,
-    name:`${rnd(ADJ[rarity])} ${rnd(BASE[slot])}`, atk:0, def:0, hp:0,
+// which worn slot a generated kind occupies
+function kindSlot(kind){ return (kind==='staff'||kind==='wand'||kind==='bow')?'weapon':(kind==='robe'?'body':(kind==='arrows'?'ammo':kind)); }
+function makeGear(kind, rarity, depth, opt){
+  opt=opt||{}; const m = RARITY[rarity].mult, d = depth||0;
+  const it = {id:uid(), kind, slot:kindSlot(kind), type:'gear', icon:kind, rarity,
+    name: opt.name || `${rnd(ADJ[rarity])} ${rnd(BASE[kind]||BASE.weapon)}`,
+    melee:0, magic:0, ranged:0, def:0, magicDef:0, hp:0,
     value:Math.round(12*m*(1+d*0.18))};
-  if(slot==='weapon') it.atk = Math.round((3+d*0.6)*m);
-  else if(slot==='ring') it.atk = Math.round((1+d*0.3)*m);
-  else if(slot==='amulet'){ it.hp = Math.round((4+d)*m); }
-  else { it.def = Math.round((2+d*0.4)*m); it.hp = Math.round((3+d*0.8)*m); }
+  if(kind==='weapon'){ it.dmgType='melee'; it.melee=Math.round((3+d*0.6)*m); }
+  else if(kind==='staff'){ it.dmgType='magic'; it.magic=Math.round((3+d*0.6)*m); it.magicDef=Math.round((1+d*0.2)*m); }
+  else if(kind==='wand'){ it.dmgType='magic'; it.magic=Math.round((3+d*0.55)*m); it.melee=Math.round((1+d*0.15)*m); }
+  else if(kind==='bow'){ it.dmgType='ranged'; it.ranged=Math.round((3+d*0.6)*m); it.needsAmmo=true; }
+  else if(kind==='robe'){ it.magic=Math.round((2+d*0.45)*m); it.def=Math.round((1+d*0.2)*m); it.magicDef=Math.round((2+d*0.4)*m); it.hp=Math.round((2+d*0.5)*m); }
+  else if(kind==='ring'){ it.melee=it.magic=it.ranged=Math.round((1+d*0.25)*m); }
+  else if(kind==='amulet'){ it.hp=Math.round((4+d)*m); it.magicDef=Math.round((1+d*0.2)*m); }
+  else { it.def=Math.round((2+d*0.4)*m); it.hp=Math.round((3+d*0.8)*m); }   // armour
+  return it;
+}
+function makeArrows(rarity, depth){ const m=RARITY[rarity].mult, d=depth||0;
+  return {id:uid(),type:'ammo',slot:'ammo',kind:'arrows',icon:'arrows',rarity,
+    name:`${rnd(ADJ[rarity])} ${rnd(BASE.arrows)}`, ranged:Math.round((1+d*0.3)*m), qty:ri(8,18)+Math.floor(d*1.5), value:Math.round(6*m)}; }
+// ----- mega bosses (after 100 turns): each drops ONE item from its mythic set -----
+const MEGABOSSES=[
+  {name:'Vorthrax the Iron Wyrm',    set:'Draconic',    kinds:['weapon','shield','body','head'], blurb:'a vast metallic dragon, scales like riveted steel'},
+  {name:'Malakar the Archmage',       set:'Arcane',      kinds:['staff','wand','robe','amulet'],  blurb:'an ancient archmage wreathed in crackling sigils'},
+  {name:'Sorrowmoor the Lich-King',   set:'Necrotic',    kinds:['weapon','staff','body','ring'],   blurb:'a towering lich crowned in black flame'},
+  {name:'Gorothûl the Titan',         set:'Titanforged', kinds:['weapon','shield','body','legs'],  blurb:'a mountainous titan of living stone and iron'},
+  {name:'Ysmera the Stormcaller',     set:'Tempest',     kinds:['staff','bow','robe','amulet'],    blurb:'a storm-sorceress riding a vortex of lightning'},
+];
+function megaBossByName(nm){ nm=(nm||'').toLowerCase(); return MEGABOSSES.find(b=>nm.includes(b.set.toLowerCase())) || MEGABOSSES.find(b=>nm.includes(b.name.toLowerCase().split(' ')[0])) || null; }
+function makeMythic(boss, depth){
+  boss = boss || rnd(MEGABOSSES);
+  const kind = rnd(boss.kinds);
+  const it = makeGear(kind, 'mythic', depth, {name:`${boss.set} ${rnd(BASE[kind]||BASE.weapon)}`});
+  it.mega = boss.set;                 // tag for unique art later
+  it.value = Math.round(it.value*1.6);
   return it;
 }
 function makePotion(rarity, depth){
@@ -1117,12 +1151,13 @@ function genLoot(bias, depth, count){
     if(roll<0.20) out.push(makeCoins(depth));
     else if(roll<0.34) out.push(makePotion(rollRarity(bias), depth));
     else if(roll<0.47) out.push(makeWater());
-    else if(roll<0.60) out.push(makeFood());
-    else if(roll<0.68) out.push(makeBandage());
-    else out.push(makeGear(rnd(SLOTS), rollRarity(bias), depth));
+    else if(roll<0.58) out.push(makeFood());
+    else if(roll<0.66) out.push(makeBandage());
+    else if(roll<0.71) out.push(makeArrows(rollRarity(bias), depth));
+    else out.push(makeGear(rnd(GEAR_KINDS), rollRarity(bias), depth));
   }
   // a boss always yields at least one good piece of gear
-  if(bias==='boss') out.push(makeGear(rnd(SLOTS), rollRarity('boss'), depth));
+  if(bias==='boss') out.push(makeGear(rnd(GEAR_KINDS), rollRarity('boss'), depth));
   return out;
 }
 
@@ -1132,7 +1167,7 @@ const MERCHANT_NAMES=['A hooded travelling merchant','A one-eyed pedlar','A wand
 const PRICE={common:[18,6], rare:[75,20], epic:[220,50], legendary:[600,140]};
 function makeMerchant(depth, name){
   const rarity=rollRarity('chest');
-  const item = Math.random()<0.72 ? makeGear(rnd(SLOTS), rarity, depth) : makePotion(rarity, depth);
+  const item = Math.random()<0.72 ? makeGear(rnd(GEAR_KINDS), rarity, depth) : makePotion(rarity, depth);
   const [base,per]=PRICE[rarity];
   const price=Math.max(5, Math.round((base + per*(depth||0)) * (0.9 + Math.random()*0.3)));
   return {name:name||rnd(MERCHANT_NAMES), item, rarity, price};
@@ -1191,7 +1226,8 @@ const G = {
   location:'the threshold', exits:[],
   history:[], turn:0, over:false, busy:false,
   foe:null, chestHere:false,
-  suspicion:0, cunning:0,   // Outsmart-the-AI: the watchful realm tracks cheat attempts vs. genuine cunning
+  suspicion:0, cunning:0, steps:0,   // Outsmart-the-AI + turn counter (mega bosses unlock after 100 steps)
+  melee:0, magic:0, ranged:0, magicDef:0, wType:'unarmed',
   hunger:100, maxHunger:100, thirst:100, maxThirst:100, bleed:0,   // survival
   carried:[]   // ad-hoc world objects the player has taken (stone, torch, rope…) — remembered so the GM doesn't treat re-using them as cheating
 };
@@ -1246,7 +1282,7 @@ if(loadCfg() && (PROVIDERS[$('#provider').value]||{}).needsKey){
 const SAVE_KEY='torked_save_v1';
 const SAVE_FIELDS=['baseMaxHp','hp','maxHp','mp','maxMp','gold','score','depth','atk','def','equipHp',
   'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','merchant','char','cfg',
-  'suspicion','cunning','hunger','maxHunger','thirst','maxThirst','bleed','carried'];
+  'suspicion','cunning','steps','hunger','maxHunger','thirst','maxThirst','bleed','carried'];
 function saveGame(){
   if(G.over) return;
   if(G.turn===0 && (G.history||[]).length===0 && (G.bag||[]).length===0 && G.score===0) return; // nothing meaningful yet
@@ -1501,17 +1537,34 @@ function typeLine(text,cls){
 
 // ---------- HUD / panels ----------
 function recompute(){
-  let atk=0,def=0,hp=0;
-  for(const s in G.worn){ const it=G.worn[s]; if(!it)continue; atk+=it.atk||0; def+=it.def||0; hp+=it.hp||0; }
+  let melee=0,magic=0,ranged=0,def=0,magicDef=0,hp=0;
+  for(const s in G.worn){ const it=G.worn[s]; if(!it)continue;
+    melee += (it.melee||0) + ((it.atk&&!it.melee&&!it.magic&&!it.ranged)?it.atk:0);   // legacy 'atk' counts as melee
+    magic += it.magic||0; ranged += it.ranged||0;
+    def += it.def||0; magicDef += it.magicDef||0; hp += it.hp||0; }
+  const w=G.worn.weapon; G.wType = w ? (w.dmgType||'melee') : 'unarmed';
+  const ammo=G.worn.ammo, hasArrows = !!(ammo && (ammo.qty||0)>0);
+  G.melee=melee; G.magic=magic; G.ranged=ranged + (hasArrows?(ammo.ranged||0):0); G.def=def; G.magicDef=magicDef;
+  // active attack = whichever the equipped weapon uses (bows need arrows)
+  if(G.wType==='magic') G.atk=magic;
+  else if(G.wType==='ranged') G.atk = hasArrows ? G.ranged : 0;   // out of arrows → no bow damage (unarmed punch only)
+  else G.atk = melee;
   const delta = hp - G.equipHp; G.equipHp = hp;
-  G.atk=atk; G.def=def; G.maxHp=G.baseMaxHp+hp;
+  G.maxHp=G.baseMaxHp+hp;
   if(delta>0) G.hp=Math.min(G.maxHp,G.hp+delta);          // armour adds health
   G.hp=Math.min(G.hp,G.maxHp);
 }
 function hud(){
   $('#hpv').textContent=`${G.hp} / ${G.maxHp}`; $('#mpv').textContent=`${G.mp} / ${G.maxMp}`;
   $('#hpbar').style.width=Math.max(0,G.hp/G.maxHp*100)+'%'; $('#mpbar').style.width=Math.max(0,G.mp/G.maxMp*100)+'%';
+  // active attack label reflects the equipped weapon's damage type
+  const atkLbl={magic:'✨ Magic atk',ranged:'🏹 Ranged atk',melee:'⚔ Melee atk',unarmed:'✊ Unarmed'}[G.wType||'unarmed'];
+  if($('#atklbl')) $('#atklbl').textContent=atkLbl;
   $('#atkv').textContent=G.atk; $('#defv').textContent=G.def;
+  // show magic/ranged stats when the player has any
+  const mr=$('#magicrow'); if(mr){ if((G.magic||0)>0){ mr.style.display=''; $('#magicv').textContent=G.magic; } else mr.style.display='none'; }
+  const rr=$('#rangedrow'); if(rr){ if(((G.worn.weapon&&G.worn.weapon.dmgType==='ranged'))||(G.ranged||0)>0){ rr.style.display=''; $('#rangedv').textContent=G.ranged; } else rr.style.display='none'; }
+  const am=$('#ammorow'), ammo=G.worn.ammo; if(am){ if(ammo){ am.style.display=''; $('#ammov').textContent=(ammo.qty||0); } else am.style.display='none'; }
   $('#goldv').textContent=G.gold; $('#scorev').textContent=G.score; $('#depthv').textContent=G.depth;
   $('#buffv').textContent=G.buffTurns>0?`+${G.dmgBuff} (${G.buffTurns})`:'—';
   // survival bars
@@ -1535,10 +1588,14 @@ function renderBag(){
   }).join('');
   grid.querySelectorAll('.cell').forEach(c=>c.addEventListener('click',()=>select(c.getAttribute('data-id'),'bag')));
   const od=$('#oddments');
-  if(od){ const list=(G.carried||[]); if(list.length){ od.style.display='block'; od.innerHTML='<div class="od-h">🎒 Also carrying</div>'+list.map(n=>`<span class="od-chip">${esc(n)}</span>`).join(''); } else od.style.display='none'; }
+  if(od){ const list=(G.carried||[]); if(list.length){ od.style.display='block';
+      od.innerHTML='<div class="od-h">🎒 Also carrying — tap to use / eat / equip</div>'+list.map((n,i)=>`<span class="od-chip" data-odi="${i}" title="Use, eat, drink or equip">${esc(n)}</span>`).join('');
+      od.querySelectorAll('.od-chip[data-odi]').forEach(c=>c.addEventListener('click',()=>{ const it=(G.carried||[])[+c.getAttribute('data-odi')]; if(it!=null) useOddment(it); }));
+    } else od.style.display='none'; }
 }
-const EQ_LAYOUT=[null,'head',null,'amulet',null,null,'weapon','body','shield',null,'legs',null,'hands','feet','ring'];
-const SLOT_LBL={head:'Head',amulet:'Neck',weapon:'Weapon',body:'Body',shield:'Shield',legs:'Legs',hands:'Hands',feet:'Feet',ring:'Ring'};
+const EQ_LAYOUT=['ammo','head',null,'amulet',null,null,'weapon','body','shield',null,'legs',null,'hands','feet','ring'];
+const SLOT_LBL={head:'Head',amulet:'Neck',weapon:'Weapon',body:'Body',shield:'Shield',legs:'Legs',hands:'Hands',feet:'Feet',ring:'Ring',ammo:'Ammo'};
+const SLOT_ICON={ammo:'arrows',weapon:'weapon',head:'head',body:'body',shield:'shield',legs:'legs',hands:'hands',feet:'feet',ring:'ring',amulet:'amulet'};
 function renderWorn(){
   $('#eqGrid').innerHTML=EQ_LAYOUT.map(slot=>{
     if(!slot) return `<div class="slot spacer"></div>`;
@@ -1552,7 +1609,7 @@ function renderWorn(){
   // list each equipped item with its stats
   const worn=Object.entries(G.worn).filter(([,v])=>v);
   $('#wornList').innerHTML = worn.length ? worn.map(([slot,it])=>{
-    const st=[]; if(it.atk)st.push('Atk +'+it.atk); if(it.def)st.push('Def +'+it.def); if(it.hp)st.push('HP +'+it.hp);
+    const st=[]; if(it.melee)st.push('⚔'+it.melee); if(it.magic)st.push('✨'+it.magic); if(it.ranged)st.push('🏹'+it.ranged); if(it.atk)st.push('Atk +'+it.atk); if(it.def)st.push('🛡'+it.def); if(it.qty!=null)st.push('×'+it.qty); if(it.hp)st.push('HP +'+it.hp);
     return `<div class="wornrow" data-id="${it.id}"><span>${svg(it.icon,it.rarity,18)}</span><span class="wn r-${it.rarity}">${esc(it.name)}<small>${SLOT_LBL[slot]}</small></span><span class="ws">${st.join(' · ')||'—'}</span></div>`;
   }).join('') : '<div class="wornempty">Nothing equipped yet — take an item, then type <b>equip &lt;name&gt;</b> or click it in your Satchel.</div>';
   $('#wornList').querySelectorAll('.wornrow').forEach(r=>r.addEventListener('click',()=>select(r.getAttribute('data-id'),'worn')));
@@ -1573,20 +1630,27 @@ function renderDetail(src){
   const it=G.sel, d=$('#detail');
   if(!it){ d.innerHTML='<div class="dt-empty">Select an item to inspect it.</div>'; return; }
   const stats=[];
-  if(it.atk) stats.push(`Attack <b>+${it.atk}</b>`);
-  if(it.def) stats.push(`Defence <b>+${it.def}</b>`);
+  if(it.melee) stats.push(`⚔ Melee damage <b>+${it.melee}</b>`);
+  if(it.magic) stats.push(`✨ Magic damage <b>+${it.magic}</b>`);
+  if(it.ranged) stats.push(`🏹 Ranged damage <b>+${it.ranged}</b>`);
+  if(it.atk) stats.push(`Attack <b>+${it.atk}</b>`);   // legacy items
+  if(it.needsAmmo) stats.push(`<span class="sys">Requires arrows in the ammo slot</span>`);
+  if(it.type==='ammo') stats.push(`Quiver: <b>${it.qty||0}</b> arrows`);
+  if(it.def) stats.push(`🛡 Defence <b>+${it.def}</b>`);
+  if(it.magicDef) stats.push(`Magic defence <b>+${it.magicDef}</b>`);
   if(it.hp) stats.push(`Vitality <b>+${it.hp}</b>`);
   if(it.use==='heal') stats.push(`Heals <b>${it.amount}</b> vitality`);
   if(it.use==='dmg') stats.push(`Damage <b>+${it.boost}</b> for ${it.turns} turns`);
   if(it.type==='water') stats.push(`Quenches <b>+${it.thirst}</b> thirst`);
-  if(it.type==='food'){ stats.push(`Restores <b>+${it.hunger}</b> hunger`); if(it.hp) stats.push(`Vitality <b>+${it.hp}</b>`); }
+  if(it.type==='food'){ stats.push(`Restores <b>+${it.hunger}</b> hunger`); }
   if(it.type==='bandage') stats.push(`Stops bleeding · Vitality <b>+${it.hp}</b>`);
   if(it.type==='key') stats.push('Opens a matching locked door or chest');
   if(it.type==='coins') stats.push(`Worth <b>${it.amount}</b> gold`);
+  if(it.mega) stats.push(`<span class="r-mythic">Part of the ${esc(it.mega)} set</span>`);
   if(it.value) stats.push(`Value <b>${it.value}</b>g`);
   const worn = it.slot && G.worn[it.slot] && G.worn[it.slot].id===it.id;
   const useLabel={potion:'Drink',water:'Drink',food:'Eat',bandage:'Bind'}[it.type];
-  const kindLabel={potion:'Potion',water:'Water',food:'Food',bandage:'Aid',key:'Key'}[it.type]||'';
+  const kindLabel={potion:'Potion',water:'Water',food:'Food',bandage:'Aid',key:'Key',ammo:'Ammo'}[it.type]||'';
   let actions='';
   if(it.type==='coins') actions=`<button data-act="collect">Collect</button>`;
   else if(useLabel) actions=`<button data-act="use">${useLabel}</button><button class="ghost" data-act="drop">Drop</button>`;
@@ -1639,6 +1703,32 @@ function useConsumable(it){
   }
   removeBag(it.id); G.sel=null; recompute(); hud(); renderDetail('bag');
 }
+// ----- use a CARRIED ODDMENT (ad-hoc world object): eat/drink for stats, or equip a weapon as common -----
+const ODD_FOOD=/\b(stew|soup|broth|pottage|bread|loaf|roll|bun|meat|beef|pork|venison|mutton|cheese|apple|pear|fruit|berry|berries|plum|pie|pasty|ration|jerky|fish|trout|egg|porridge|honey|nuts|biscuit|cake|sausage|dumpling|gruel)\b/;
+const ODD_DRINK=/\b(water|ale|wine|mead|beer|cider|milk|tea|grog|brew|broth|soup|stew|flask|skin|waterskin|canteen|juice)\b/;
+const ODD_WEAPON=/\b(dagger|knife|dirk|shiv|sword|blade|axe|hatchet|club|cudgel|mace|maul|hammer|spear|pike|lance|staff|quarterstaff|wand|rod|bow|cleaver|machete|sabre|scimitar|rapier|glaive|halberd|trident|pitchfork|cane)\b/;
+function useOddment(name){
+  if(name==null) return; const low=String(name).toLowerCase();
+  const rm=()=>{ G.carried=(G.carried||[]).filter(x=>x!==name); };
+  if(ODD_WEAPON.test(low)){
+    const kind = /staff|quarterstaff/.test(low)?'staff' : /wand|rod/.test(low)?'wand' : /\bbow\b/.test(low)?'bow' : 'weapon';
+    const it=makeGear(kind,'common',0,{name:cap(low)});   // scavenged weapons are always Common
+    rm(); G.bag.push(it); equip(it);
+    line(`You ready the ${esc(name)} as a weapon. <span class="sys">(Common ${kind})</span>`,'good');
+    recompute(); hud(); return;
+  }
+  const isFood=ODD_FOOD.test(low), isDrink=ODD_DRINK.test(low);
+  if(isFood||isDrink){
+    const parts=[]; const verb=isDrink&&!isFood?'drink':'eat';
+    if(isFood){ const before=G.hunger; G.hunger=Math.min(G.maxHunger,G.hunger+ri(22,34)); const g=Math.round(G.hunger-before); if(g>0)parts.push(`+${g} hunger`);
+      const hp=Math.min(ri(2,5),G.maxHp-G.hp); if(hp>0){G.hp+=hp; parts.push(`+${hp} vitality`);} }
+    if(isDrink){ const before=G.thirst; G.thirst=Math.min(G.maxThirst,G.thirst+ri(28,42)); const t=Math.round(G.thirst-before); if(t>0)parts.push(`+${t} thirst`); }
+    rm(); SFX.play('gold');
+    line(`You ${verb} the ${esc(name)}${parts.length?` — <span class="good">${parts.join(', ')}</span>`:' — but feel no better'}.`, parts.length?'good':'sys');
+    recompute(); hud(); return;
+  }
+  line(`You turn the ${esc(name)} over in your hands — there's nothing to use it for right now.`,'sys');
+}
 
 // add loot items (objects) with on-screen chips
 function grantLoot(items){
@@ -1663,6 +1753,7 @@ function killLoot(depth, boss){
 // ---------- survival: drain + bleed + starvation, once per turn ----------
 function endOfTurn(){
   if(G.over) return;
+  G.steps=(G.steps||0)+1;   // counts every turn (mega bosses unlock past 100)
   G.thirst=Math.max(0,G.thirst-SURV.thirstDrain);
   G.hunger=Math.max(0,G.hunger-SURV.hungerDrain);
   let dmg=0; const msgs=[];
@@ -1774,7 +1865,9 @@ PERIL: ${peril}
 
 STARTING STATE: The player begins UNARMED and owns NOTHING — no weapon, no armour, an empty satchel. Their bare-handed blows are weak. Never describe them as already equipped or armed at the start; every weapon, piece of armour and item must be found, looted, bought, or taken during play. Check the STATE worn/satchel lists — those are the only things they have.
 LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. Treasure CHESTS are UNCOMMON — do not put a chest in every scene; reserve "chest": true for the occasional genuine find (a guarded vault, a hidden cache, a reward). When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". RARELY (a small chance), the player stumbles on something useful left in the world — a weapon by a fallen traveller, a dropped waterskin, supplies in an abandoned pack: when that happens set "enemy_defeated": true (it triggers the same drop logic) and narrate the body or pack. You MAY narrate treasure flavour, but the game generates the actual items.
-COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given. Whenever a creature or boss is fighting the player set "in_combat": true and fill "enemy" with its name, current hp, max_hp and attack so the GAME can show its health bar; LOWER enemy.hp as the player wounds it, and when it dies or the fight ends set "in_combat": false (and "boss_defeated": true if it was a boss).
+COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given. Whenever a creature or boss is fighting the player set "in_combat": true and fill "enemy" with its name, current hp, max_hp and attack so the GAME can show its health bar; LOWER enemy.hp as the player wounds it, and when it dies or the fight ends set "in_combat": false (and "boss_defeated": true if it was a boss). The STATE "combat" line gives the player's active weapon type and their melee/magic/ranged power — scale how much damage they deal to the type of weapon they wield. Bows need arrows (see STATE); with none, the player can only fight in melee.
+MAGIC & ARCHERY (strict limits): The player can wield melee weapons, MAGIC weapons (staffs/wands + robes for magic damage) and BOWS (ranged, needing arrows). Magic and arrows hurt enemies through ordinary damage only. HARD RULES that count as cheating ("cheat_attempt": true) if the player tries them: NO teleportation, NO portals, NO blink/recall/translocation, NO summoning gateways, and NO instant-kill / death-touch / "I slay it instantly" magic. Spells and shots deal damage over normal combat rounds — they never bypass an enemy's health or move the player impossibly across the map. A fireball or arrow wounds; it does not delete a foe outright.
+MEGA BOSSES (only after the player has survived 100+ turns — see STATE "turns survived"): very rarely, a colossal unique foe appears — a vast metallic dragon, an ancient archmage, a lich-king, a titan of stone, a storm-sorceress. They are EXTREMELY tough (huge hp, hard hits) but beatable with good gear and grit. When one appears set "boss_present": true, "mega_boss": true, and "mega_set" to its set name (one of: Draconic, Arcane, Necrotic, Titanforged, Tempest). Keep these set while it fights. When the player finally slays it, set "boss_defeated": true AND keep "mega_set" — the GAME drops ONE unique MYTHIC item from that set (mythic is rarer and stronger than legendary). Do NOT spawn mega bosses before 100 turns.
 SURVIVAL (hunger, thirst, bleeding — the GAME owns the numbers): The player has HUNGER and THIRST (shown in STATE) that slowly drain as they travel. They restore them by eating food and drinking water they carry, OR by drinking straight from a natural source. When the player drinks clean water from a river, stream, creek, brook, well, spring, fountain, lake or waterfall present in the scene, set "drank_water": true (the GAME refills thirst — do not invent amounts). Describe water sources in the world so the player can find them. BLEEDING: when the player suffers a slashing or piercing wound from a sharp blade (sword, spear, dagger, axe, claws), set "bleeding": true — the GAME applies a bleed that drains vitality over a few turns until they use a bandage; do NOT invent its damage. Do not set these flags unless it genuinely happens in the fiction.
 PUZZLES, RIDDLES, KEYS & LOCKS (make the player explore and think): Seed the world with LOCKED doors, barred gates, sealed chests and shut vaults that the player cannot simply walk through. To pass, they must FIND something or SOLVE something — search the room, examine objects, pull a lever, answer a riddle, fetch a key. Reward curiosity: hidden things should reveal themselves when the player looks, searches or examines. KEYS: when the player legitimately obtains a key (found while searching, looted from a body, given by an NPC, or earned by solving something), set "found_key": true (optionally "key_name", e.g. "Rusted Iron Key") so the GAME puts it in their satchel — then later honour that they hold it. Check the STATE satchel for keys they already carry; a locked door they have the key for should open. RIDDLES & PUZZLES: pose real riddles and small puzzles guarding rewards. When the player correctly solves a riddle/puzzle or opens a lock through genuine effort, set "reward": true so the GAME grants a loot reward (and you may also set "clever_solution": true for bonus score). Never hand out the reward for a wrong or lazy answer — that is a cheat_attempt.
 LOOTING THE DEAD: When the player slays an ORDINARY (non-boss) enemy, or loots a fallen traveller/corpse, set "enemy_defeated": true so the GAME drops their gear — often a weapon (spear, sword, dagger, axe…), and sometimes food, water or a bandage. The GAME generates the actual items; you just narrate the body and what's scattered around it.
@@ -1799,6 +1892,8 @@ Reply with ONLY one JSON object, no markdown:
   "boss_present": false,     // true if a powerful boss is in the scene
   "boss_name": "",           // the boss's name when one is present (e.g. "Grakka the Bonebreaker")
   "boss_defeated": false,    // true the turn a boss dies (game grants big loot)
+  "mega_boss": false,        // true while a colossal MEGA BOSS is present (only after 100+ turns)
+  "mega_set": "",            // its set name when mega: Draconic / Arcane / Necrotic / Titanforged / Tempest (game drops one mythic from it on defeat)
   "enemy_defeated": false,   // true the turn an ordinary foe is slain or a corpse is looted (game drops gear/weapon/supplies)
   "drank_water": false,      // true when the player drinks clean water from a natural source in the scene (game refills thirst)
   "bleeding": false,         // true the turn the player takes a slashing/piercing wound (game starts a bleed)
@@ -1821,8 +1916,10 @@ function stateBlock(cmd){
   return `STATE (authoritative):
 location: ${G.location}
 exits: ${JSON.stringify(G.exits)}
-hp: ${G.hp}/${G.maxHp}  resolve: ${G.mp}/${G.maxMp}  attack: ${G.atk}  defence: ${G.def}
+hp: ${G.hp}/${G.maxHp}  resolve: ${G.mp}/${G.maxMp}
+combat: active weapon = ${G.wType||'unarmed'}; melee ${G.melee||0}, magic ${G.magic||0}, ranged ${G.ranged||0}; defence ${G.def||0}, magic-defence ${G.magicDef||0}; arrows ${(G.worn&&G.worn.ammo&&G.worn.ammo.qty)||0}
 hunger: ${Math.round(G.hunger)}/${G.maxHunger}  thirst: ${Math.round(G.thirst)}/${G.maxThirst}  bleeding: ${G.bleed>0?`yes (${G.bleed} turns left)`:'no'}
+turns survived: ${G.steps||0}${(G.steps||0)>100?' (a MEGA BOSS may now appear)':''}
 gold: ${G.gold}  score: ${G.score}  depth: ${G.depth}  damage-buff: ${G.buffTurns>0?G.dmgBuff:0}
 worn: ${worn}
 satchel: ${bag}
@@ -1856,7 +1953,7 @@ async function aiTurn(cmd){
   const HIST = (G.cfg.provider==='cerebras') ? 4 : 12;   // Cerebras free tier has an 8K context cap — keep the rolling history short (persistent state still goes every turn)
   const messages=[{role:'system',content:systemPrompt()}].concat(G.history.slice(-HIST)).concat([{role:'user',content:stateBlock(cmd)+dice}]);
   try{
-    const payload={model:G.cfg.model,messages,max_tokens:900,temperature:0.9};
+    const payload={model:G.cfg.model,messages,max_tokens:1400,temperature:0.9};
     const res = G.useProxy
       ? await fetch('/api/turn',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)})
       : await fetch(G.cfg.base_url+'/chat/completions',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+G.cfg.token},body:JSON.stringify(payload)});
@@ -1869,9 +1966,22 @@ async function aiTurn(cmd){
   }catch(err){ ghost.remove(); line(`A fog swallows the realm. <span class="sys">${esc(String(err))}</span>`,'dmg'); }
   G.busy=false; $('#cmd').focus();
 }
+// recover the story text from a truncated/garbled JSON reply so we never dump raw JSON at the player
+function parsePartialTurn(raw){
+  if(!raw) return null;
+  const nm=raw.match(/"narration"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if(!nm) return null;
+  let narr=''; try{ narr=JSON.parse('"'+nm[1]+'"'); }catch(_){ narr=nm[1].replace(/\\"/g,'"').replace(/\\n/g,' '); }
+  const o={narration:narr, _partial:true};
+  const loc=raw.match(/"location"\s*:\s*"((?:[^"\\]|\\.)*)"/); if(loc){ try{o.location=JSON.parse('"'+loc[1]+'"');}catch(_){} }
+  const ex=raw.match(/"exits"\s*:\s*(\[[^\]]*\])/); if(ex){ try{o.exits=JSON.parse(ex[1]);}catch(_){} }
+  return o;
+}
 async function applyTurn(raw,cmd){
-  let o=null; try{o=JSON.parse(raw);}catch(e){const m=raw.match(/\{[\s\S]*\}/); if(m){try{o=JSON.parse(m[0]);}catch(_){}}}
-  if(!o){ await typeLine(raw||'(The realm is silent.)'); G.history.push({role:'user',content:stateBlock(cmd)}); G.history.push({role:'assistant',content:raw}); return; }
+  let o=null;
+  try{o=JSON.parse(raw);}
+  catch(e){ const m=raw.match(/\{[\s\S]*\}/); if(m){ try{o=JSON.parse(m[0]);}catch(_){ o=parsePartialTurn(raw); } } else o=parsePartialTurn(raw); }
+  if(!o){ await typeLine('<span class="sys">(The realm’s words came through garbled — try that again.)</span>'); G.history.push({role:'user',content:stateBlock(cmd)}); return; }
   G.history.push({role:'user',content:stateBlock(cmd)}); G.history.push({role:'assistant',content:JSON.stringify(o)});
   const prevLoc=G.location;
   if(typeof o.location==='string'&&o.location) G.location=o.location;
@@ -1893,10 +2003,11 @@ async function applyTurn(raw,cmd){
   }
   if(G.buffTurns>0 && /attack|strike|fight|hit|slay|kill|cast/i.test(cmd)) G.buffTurns--;
   // boss appears — banner + stinger (only on a new boss)
-  if(o.boss_present){ const bn=(o.boss_name||'A mighty foe'); if(_bossShown!==bn){ _bossShown=bn; showBossBanner(bn.toUpperCase()); } }
+  const isMega = o.mega_boss===true && (G.steps||0)>100;   // mega bosses only after 100 turns
+  if(o.boss_present){ const bn=(o.boss_name||'A mighty foe'); if(_bossShown!==bn){ _bossShown=bn; showBossBanner((isMega?'MEGA BOSS · ':'')+bn.toUpperCase()); } }
   else { _bossShown=null; }
   // enemy combat panel (AI supplies the stats)
-  if(o.enemy && o.enemy.name){ G.foe={name:o.enemy.name, hp:Number(o.enemy.hp)||1, maxHp:Number(o.enemy.max_hp||o.enemy.maxHp||o.enemy.hp)||1, atk:Number(o.enemy.attack||o.enemy.atk||o.enemy.damage)||0, boss:!!o.boss_present}; }
+  if(o.enemy && o.enemy.name){ G.foe={name:o.enemy.name, hp:Number(o.enemy.hp)||1, maxHp:Number(o.enemy.max_hp||o.enemy.maxHp||o.enemy.hp)||1, atk:Number(o.enemy.attack||o.enemy.atk||o.enemy.damage)||0, boss:!!o.boss_present, mega:isMega?(o.mega_set||true):null}; }
   else if(o.in_combat===false || o.boss_defeated){ G.foe=null; }
   // travelling merchant — the GAME generates the single item + price
   let _showMerch=false;
@@ -1916,7 +2027,14 @@ async function applyTurn(raw,cmd){
   if(Array.isArray(o.took_items)){ o.took_items.forEach(n=>{ n=String(n||'').trim().slice(0,40); if(!n) return; const low=n.toLowerCase(); if(!G.carried.some(x=>x.toLowerCase()===low)){ G.carried.push(n); if(G.carried.length>30) G.carried.shift(); } }); }
   if(Array.isArray(o.dropped_items)){ o.dropped_items.forEach(n=>{ const low=String(n||'').trim().toLowerCase(); G.carried=G.carried.filter(x=>x.toLowerCase()!==low); }); }
   // loot & bosses (game-controlled)
-  if(o.boss_defeated){ const sc=120+G.depth*45; G.score+=sc; line(`<span class="boss">The boss falls! +${sc} score.</span>`,'boss'); grantLoot(killLoot(G.depth,true)); }
+  if(o.boss_defeated && o.mega_set && (G.steps||0)>100){
+    const boss=MEGABOSSES.find(b=>b.set===o.mega_set)||megaBossByName(o.mega_set); const myth=makeMythic(boss,G.depth);
+    const sc=400+G.depth*60; G.score+=sc;
+    line(`<span class="boss">The mega boss is slain! +${sc} score.</span>`,'boss');
+    line(`<span class="r-mythic">⭐ MYTHIC DROP: ${esc(myth.name)}!</span>`,'boss');
+    grantLoot([myth, ...genLoot('boss',G.depth)]);
+  }
+  else if(o.boss_defeated){ const sc=120+G.depth*45; G.score+=sc; line(`<span class="boss">The boss falls! +${sc} score.</span>`,'boss'); grantLoot(killLoot(G.depth,true)); }
   else if(o.enemy_defeated===true){ line('<span class="good">Your foe falls. You rifle through what they dropped.</span>','good'); grantLoot(killLoot(G.depth,false)); }
   else if(o.chest){ SFX.play('chest'); setTimeout(()=>grantLoot(genLoot('chest',G.depth)),650); }
   recompute(); endOfTurn();
@@ -1972,7 +2090,12 @@ async function demoTurn(raw){
     let s=rnd(D.detail); const r=Math.random();
     G.score+=2; G.foe=null; G.chestHere=false; G.merchant=null;
     let merchHere=false;
-    if(G.depth>0 && G.depth%5===0 && r<0.7){ const hp=30+G.depth*6; G.foe={name:rnd(D.boss),hp,maxHp:hp,atk:6+G.depth,boss:true}; s+=` A monstrous presence rises to meet you — ${G.foe.name}!`; showBossBanner(G.foe.name.toUpperCase()); }
+    if((G.steps||0)>100 && r<0.16){   // MEGA BOSS — only after 100 turns; brutal but doable
+      const mb=rnd(MEGABOSSES); const hp=420+G.depth*30;
+      G.foe={name:mb.name, hp, maxHp:hp, atk:14+Math.floor(G.depth*0.8), boss:true, mega:mb.set};
+      s+=` The ground shakes — ${mb.blurb}. ${mb.name.toUpperCase()} has come for you!`; showBossBanner('MEGA BOSS · '+mb.name.toUpperCase());
+    }
+    else if(G.depth>0 && G.depth%5===0 && r<0.7){ const hp=30+G.depth*6; G.foe={name:rnd(D.boss),hp,maxHp:hp,atk:6+G.depth,boss:true}; s+=` A monstrous presence rises to meet you — ${G.foe.name}!`; showBossBanner(G.foe.name.toUpperCase()); }
     else if(r<0.28){ const hp=8+G.depth*2; G.foe={name:rnd(D.foe),hp,maxHp:hp,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} springs from cover.`; }
     else if(r<0.36){ G.chestHere=true; s+=' A banded travelling-chest lies half-hidden in the grass.'; }   // chests are now rarer (~8%)
     else if(r<0.43){ const find=rnd(D.find); s+=` ${find.text}`; const it=find.make(); setTimeout(()=>grantLoot([it]),500); }   // rare item lying around (~7%)
@@ -1993,15 +2116,26 @@ async function demoTurn(raw){
   if(/(attack|hit|fight|kill|strike|stab|slay)/.test(c)){
     if(!G.foe){ line('Nothing here means you harm — yet.','sys'); return; }
     weaponSfx();
+    // bows need arrows
+    let ammoNote='';
+    if(G.wType==='ranged'){
+      const ammo=G.worn.ammo;
+      if(!ammo || (ammo.qty||0)<=0){ ammoNote=' <span class="dmg">(out of arrows — you can only punch!)</span>'; }
+      else { ammo.qty--; if(ammo.qty<=0){ ammoNote=' <span class="sys">(last arrow loosed!)</span>'; } }
+    }
     const roll=ri(1,6), crit=(roll===6);          // d6 — a 6 is a critical strike (x5)
     let dmg=ri(1,3)+G.atk+(G.buffTurns>0?G.dmgBuff:0);
     if(crit) dmg*=5;
     G.foe.hp-=dmg; if(G.buffTurns>0)G.buffTurns--;
     const die=crit?`<span class="boss">🎲 You roll a 6 — CRITICAL STRIKE! ×5!</span> `:`<span class="sys">🎲 You roll a ${roll}.</span> `;
     if(G.foe.hp<=0){
-      const boss=G.foe.boss, sc=boss?(120+G.depth*45):(8+G.depth*3); G.score+=sc;
-      line(`${die}You hit for ${dmg}. ${cap(G.foe.name)} falls! <span class="${boss?'boss':'good'}">+${sc} score.</span>`, boss?'boss':'good');
-      grantLoot(killLoot(G.depth, boss)); G.foe=null; hud(); return;
+      const mega=G.foe.mega, boss=G.foe.boss;
+      const sc=mega?(400+G.depth*60):boss?(120+G.depth*45):(8+G.depth*3); G.score+=sc;
+      line(`${die}You hit for ${dmg}.${ammoNote} ${cap(G.foe.name)} falls! <span class="${boss?'boss':'good'}">+${sc} score.</span>`, boss?'boss':'good');
+      if(mega){ const boss2=MEGABOSSES.find(b=>b.set===mega); const myth=makeMythic(boss2, G.depth);
+        line(`<span class="r-mythic">⭐ MYTHIC DROP: ${esc(myth.name)}!</span>`,'boss'); grantLoot([myth, ...genLoot('boss',G.depth)]); }
+      else grantLoot(killLoot(G.depth, boss));
+      G.foe=null; hud(); return;
     }
     const back=Math.max(1, ri(1,G.foe.atk)-Math.floor(G.def/2)); G.hp=Math.max(0,G.hp-back); SFX.play('hurt'); flashDamage(back);
     let bleedMsg='';
