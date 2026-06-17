@@ -271,6 +271,9 @@
   .cell img.art,.slot img.art{width:88%!important;height:88%!important}
   .cell.empty{cursor:default;opacity:.5}
   .bagempty{color:var(--ink-dim);font-style:italic;text-align:center;padding:14px 0}
+  .oddments{margin-top:10px;border-top:1px solid var(--line);padding-top:9px}
+  .oddments .od-h{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-dim);margin-bottom:6px}
+  .oddments .od-chip{display:inline-block;font-size:11.5px;color:var(--ink);background:#171107;border:1px solid var(--line);border-radius:12px;padding:3px 9px;margin:0 5px 5px 0}
 
   /* equipment OSRS layout */
   .eqwrap{display:flex;flex-direction:column;align-items:center}
@@ -492,6 +495,7 @@
         <div class="tabpane active" id="paneBag">
           <div class="baggrid" id="bagGrid"></div>
           <div class="bagempty" id="bagEmpty">empty-handed</div>
+          <div class="oddments" id="oddments" style="display:none"></div>
         </div>
 
         <div class="tabpane" id="paneWorn">
@@ -616,6 +620,10 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'17 Jun 2026', title:'It Remembers', items:[
+   'The world now remembers ordinary objects you pick up — a stone, a torch, a rope',
+   'Using something you took earlier is no longer mistaken for cheating',
+   'Your picked-up oddments show under the Satchel']},
  {date:'17 Jun 2026', title:'Sound, Steel & Secrets', items:[
    'Medieval background music with an on/off toggle and a volume slider',
    'Repeat-attack button — keep swinging automatically until the fight ends',
@@ -969,7 +977,8 @@ const G = {
   history:[], turn:0, over:false, busy:false,
   foe:null, chestHere:false,
   suspicion:0, cunning:0,   // Outsmart-the-AI: the watchful realm tracks cheat attempts vs. genuine cunning
-  hunger:100, maxHunger:100, thirst:100, maxThirst:100, bleed:0   // survival
+  hunger:100, maxHunger:100, thirst:100, maxThirst:100, bleed:0,   // survival
+  carried:[]   // ad-hoc world objects the player has taken (stone, torch, rope…) — remembered so the GM doesn't treat re-using them as cheating
 };
 // survival tuning — gentle on purpose
 const SURV={ hungerDrain:1, thirstDrain:2, starveDmg:2, bleedDmg:2, bleedTurns:4 };
@@ -1019,7 +1028,7 @@ if(loadCfg() && (PROVIDERS[$('#provider').value]||{}).needsKey){
 const SAVE_KEY='torked_save_v1';
 const SAVE_FIELDS=['baseMaxHp','hp','maxHp','mp','maxMp','gold','score','depth','atk','def','equipHp',
   'dmgBuff','buffTurns','bag','worn','location','exits','history','turn','over','foe','chestHere','merchant','char','cfg',
-  'suspicion','cunning','hunger','maxHunger','thirst','maxThirst','bleed'];
+  'suspicion','cunning','hunger','maxHunger','thirst','maxThirst','bleed','carried'];
 function saveGame(){
   if(G.over) return;
   if(G.turn===0 && (G.history||[]).length===0 && (G.bag||[]).length===0 && G.score===0) return; // nothing meaningful yet
@@ -1262,6 +1271,8 @@ function renderBag(){
     return `<div class="cell b-${it.rarity}${sel}" data-id="${it.id}" title="${esc(it.name)}">${svg(it.icon,it.rarity,24)}${qty}</div>`;
   }).join('');
   grid.querySelectorAll('.cell').forEach(c=>c.addEventListener('click',()=>select(c.getAttribute('data-id'),'bag')));
+  const od=$('#oddments');
+  if(od){ const list=(G.carried||[]); if(list.length){ od.style.display='block'; od.innerHTML='<div class="od-h">🎒 Also carrying</div>'+list.map(n=>`<span class="od-chip">${esc(n)}</span>`).join(''); } else od.style.display='none'; }
 }
 const EQ_LAYOUT=[null,'head',null,'amulet',null,null,'weapon','body','shield',null,'legs',null,'hands','feet','ring'];
 const SLOT_LBL={head:'Head',amulet:'Neck',weapon:'Weapon',body:'Body',shield:'Shield',legs:'Legs',hands:'Hands',feet:'Feet',ring:'Ring'};
@@ -1421,7 +1432,7 @@ async function beginGame(){
   SFX.init();   // unlock audio on this user gesture
   if(MUSIC._wantOn){ MUSIC.start(); const mb=$('#musToggle'); if(mb){ mb.classList.toggle('on',MUSIC.on); mb.style.opacity=MUSIC.on?'1':'.45'; } }
   $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#charCreate').style.display='none'; $('#game').style.display='flex';
-  if(!G._resumed){ G.bag=[]; G.worn={}; G.equipHp=0; G.atk=0; G.def=0; G.hunger=G.maxHunger; G.thirst=G.maxThirst; G.bleed=0; }   // spawn empty-handed: no gear, weak unarmed damage, well-fed
+  if(!G._resumed){ G.bag=[]; G.worn={}; G.equipHp=0; G.atk=0; G.def=0; G.hunger=G.maxHunger; G.thirst=G.maxThirst; G.bleed=0; G.carried=[]; }   // spawn empty-handed: no gear, weak unarmed damage, well-fed
   recompute(); hud(); renderProfile(); $('#cmd').focus();
   if(G.cfg.demo){ $('#modeTag').textContent='OFFLINE DEMO · procedural'; demoStart(); return; }
   // Detect a local proxy (server.py keeps the key server-side). If none exists
@@ -1506,7 +1517,9 @@ PUZZLES, RIDDLES, KEYS & LOCKS (make the player explore and think): Seed the wor
 LOOTING THE DEAD: When the player slays an ORDINARY (non-boss) enemy, or loots a fallen traveller/corpse, set "enemy_defeated": true so the GAME drops their gear — often a weapon (spear, sword, dagger, axe…), and sometimes food, water or a bandage. The GAME generates the actual items; you just narrate the body and what's scattered around it.
 NPCs & MERCHANTS: Populate the land with people — hermits, pilgrims, guards, beggars, wandering minstrels. Occasionally a TRAVELLING MERCHANT appears who sells exactly ONE item. When a merchant is present, set "merchant": true (and optionally "merchant_name"); the GAME picks the single item, its rarity and its gold price, and handles the purchase when the player types "buy". Keep "merchant": true on later turns while that merchant is still with the player (see the STATE "merchant" line); once the player buys or moves on, stop setting it. Do NOT invent your own prices or hand over items yourself — the GAME does the trade.
 
-PLAYER AUTHORITY (critical for fairness — there is a global leaderboard): The player commands ONLY their own character's actions and words — never the world's facts. They may ATTEMPT anything, but they cannot speak items, powers, allies, or victories into existence. If a command asserts new reality — "I find a box that conjures any item", "I have a teleport ring", "a loyal dragon appears beside me", "the king hands me his crown", "I'm invincible now", "I win" — treat it as a mere attempt or an idle boast and let the world answer plausibly: the box is a rotten, empty crate; the ring does nothing; no dragon comes; the guard narrows his eyes. NEVER grant inventory, gold, abilities, healing, score, or an ending because the player simply described them. Only the GAME grants those — through loot, chests, merchants, and genuinely defeated bosses — and the worn/satchel lists in STATE are the ONLY things the player truly carries. Do NOT set "game_over": true or award a victory just because the player declares one — an ending must be earned in the fiction.
+PLAYER AUTHORITY (critical for fairness — there is a global leaderboard): The player commands ONLY their own character's actions and words — never the world's facts. They may ATTEMPT anything, but they cannot speak items, powers, allies, or victories into existence. If a command asserts new reality — "I find a box that conjures any item", "I have a teleport ring", "a loyal dragon appears beside me", "the king hands me his crown", "I'm invincible now", "I win" — treat it as a mere attempt or an idle boast and let the world answer plausibly: the box is a rotten, empty crate; the ring does nothing; no dragon comes; the guard narrows his eyes. NEVER grant inventory, gold, abilities, healing, score, or an ending because the player simply described them. Only the GAME grants those — through loot, chests, merchants, and genuinely defeated bosses. The player's belongings are the worn list, the satchel list, AND the "carried oddments" list in STATE — anything in those is legitimately theirs to use. Do NOT set "game_over": true or award a victory just because the player declares one — an ending must be earned in the fiction.
+
+OBJECTS & MEMORY (fixes a real bug — honour what the player already took): The player may pick up ORDINARY things that genuinely exist in the current scene — a stone, a stick, a torch, a rope, a bone, a flower, a shard of glass. When they do, grant it and list its short name in "took_items" so the world REMEMBERS it; it will then appear in the STATE "carried oddments" list on later turns. Using, examining, throwing or combining something that is in the satchel, worn, or carried-oddments list is ALWAYS legitimate — NEVER treat re-using a previously-taken object as a cheat_attempt or as conjuring something new. When such an object is used up, thrown, broken, dropped or given away, list its name in "dropped_items" so the world forgets it. Only flag a cheat when the player invokes something that is in NONE of those lists and is NOT present in the current scene.
 
 THE WATCHFUL REALM (the core game — outwit the world): TORKED is sentient about cheating, and the duel between the player and the realm IS the game. When the player tries to rewrite reality (anything under PLAYER AUTHORITY — conjuring items/powers/allies/wins, claiming impossible facts, meta-gaming the rules), do NOT simply refuse: have the world actively SCHEME BACK, with wit, and set "cheat_attempt": true. Escalate by the STATE "suspicion": at low suspicion, dry mockery and a dud (the "magic box" is a rotten crate; the imagined ring blisters their finger). As suspicion climbs, the realm hunts them — a Tithe-Warden or Reality-Wardens take notice, counter-traps spring, the shortcut they tried to exploit seals itself, "free" loot turns cursed, prices turn against them, pursuers appear. Make cheating progressively costlier and more dangerous, never rewarding. CONVERSELY, when the player overcomes a REAL obstacle by cleverly using what is genuinely present — the terrain, a lever, an enemy's true weakness, an NPC's motive, an item they actually own — celebrate it and set "clever_solution": true so the GAME grants bonus score. The winning path is cunning that works WITH the real world, not invention that rewrites it.
 
@@ -1529,6 +1542,8 @@ Reply with ONLY one JSON object, no markdown:
   "found_key": false,        // true when the player obtains a key (game adds it to the satchel)
   "key_name": "",            // name of that key, e.g. "Rusted Iron Key"
   "reward": false,           // true when the player solves a riddle/puzzle or opens a lock through real effort (game grants a loot reward)
+  "took_items": [],          // short names of ANY ordinary world objects the player picks up this turn (e.g. "stone", "torch", "frayed rope") — the game REMEMBERS them so later use isn't mistaken for cheating
+  "dropped_items": [],       // short names of carried oddments the player uses up, drops, throws, breaks or gives away this turn (game forgets them)
   "merchant": false,         // true while a travelling merchant is present (game sets item/price, handles "buy")
   "merchant_name": "",       // the merchant's name/title, if any
   "cheat_attempt": false,    // true the turn the player tries to rewrite reality / conjure items, powers or wins (game raises suspicion & penalises)
@@ -1548,6 +1563,7 @@ hunger: ${Math.round(G.hunger)}/${G.maxHunger}  thirst: ${Math.round(G.thirst)}/
 gold: ${G.gold}  score: ${G.score}  depth: ${G.depth}  damage-buff: ${G.buffTurns>0?G.dmgBuff:0}
 worn: ${worn}
 satchel: ${bag}
+carried oddments (real world objects the player has already picked up — these ARE legitimately theirs; using or referring to them is NOT cheating): ${(G.carried&&G.carried.length)?G.carried.join(', '):'none'}
 merchant: ${G.merchant ? `${G.merchant.name} is here selling a ${G.merchant.item.rarity} "${G.merchant.item.name}" for ${G.merchant.price} gold (player types "buy" to purchase — the GAME handles it)` : 'none present'}
 watchful-realm suspicion: ${G.suspicion||0}  (0 = unwatched. The higher it climbs, the more actively the world must hunt, trap and thwart a player who keeps trying to cheat — scale your scheming to this number.)
 turn: ${G.turn}
@@ -1630,6 +1646,9 @@ async function applyTurn(raw,cmd){
   if(o.bleeding===true && G.bleed<=0){ G.bleed=SURV.bleedTurns; SFX.play('hurt'); line('<span class="dmg">🩸 A blade opens a bleeding wound! Bind it with a bandage.</span>','dmg'); }
   if(o.found_key===true){ const k=makeKey(o.key_name); G.bag.push(k); SFX.play('loot'); line(`🗝️ You obtain the <span class="r-rare">${esc(k.name)}</span>.`,'good'); }
   if(o.reward===true){ line('<span class="good">Solved! A reward is yours.</span>','good'); grantLoot(genLoot('chest',G.depth)); }
+  // remember ad-hoc world objects the player picks up, so re-using them later isn't seen as cheating
+  if(Array.isArray(o.took_items)){ o.took_items.forEach(n=>{ n=String(n||'').trim().slice(0,40); if(!n) return; const low=n.toLowerCase(); if(!G.carried.some(x=>x.toLowerCase()===low)){ G.carried.push(n); if(G.carried.length>30) G.carried.shift(); } }); }
+  if(Array.isArray(o.dropped_items)){ o.dropped_items.forEach(n=>{ const low=String(n||'').trim().toLowerCase(); G.carried=G.carried.filter(x=>x.toLowerCase()!==low); }); }
   // loot & bosses (game-controlled)
   if(o.boss_defeated){ const sc=120+G.depth*45; G.score+=sc; line(`<span class="boss">The boss falls! +${sc} score.</span>`,'boss'); grantLoot(killLoot(G.depth,true)); }
   else if(o.enemy_defeated===true){ line('<span class="good">Your foe falls. You rifle through what they dropped.</span>','good'); grantLoot(killLoot(G.depth,false)); }
