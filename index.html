@@ -828,13 +828,23 @@ const TTS = {
       const r=await fetch('https://api.openai.com/v1/audio/speech',{method:'POST',
         headers:{'content-type':'application/json','authorization':'Bearer '+this.oaKey},
         body:JSON.stringify({model:'gpt-4o-mini-tts',voice:this.oaVoice||'ash',input:text.slice(0,900),instructions:instr,response_format:'mp3'})});
-      if(!r.ok){ if(r.status===401) line('<span class="sys">Realistic voice: that OpenAI key was refused — falling back to the browser voice.</span>','sys'); return false; }
+      if(!r.ok){
+        let msg=''; try{ const j=await r.json(); msg=(j&&j.error&&j.error.message)||''; }catch(e){ try{ msg=(await r.text()).slice(0,160); }catch(_){ } }
+        const why = r.status===429 ? 'no credit on this OpenAI account — add a little billing at platform.openai.com/billing, then it works'
+                  : r.status===401 ? 'the key was refused — re-copy it in the ✨ panel'
+                  : r.status===403 ? 'this key/project can’t use the audio model — enable it, or use a standard secret key'
+                  : r.status===404 ? 'the voice model wasn’t found for this account'
+                  : 'request failed';
+        line(`<span class="dmg">Realistic voice (${r.status}): ${why}.</span>${msg?` <span class="sys">${esc(msg)}</span>`:''} <span class="sys">Using the browser voice for now.</span>`,'sys');
+        if(r.status===401||r.status===403||r.status===429||r.status===404){ this.real=false; try{localStorage.setItem('torked_tts_on','0');}catch(e){} if(typeof paintVoiceControls==='function') paintVoiceControls(); }
+        return false;
+      }
       const buf=await r.arrayBuffer(); const url=URL.createObjectURL(new Blob([buf],{type:'audio/mpeg'}));
       if(this._audio){ try{this._audio.pause();}catch(e){} }
       this._audio=new Audio(url); this._audio.onended=()=>URL.revokeObjectURL(url);
-      await this._audio.play().catch(()=>{});
+      await this._audio.play().catch(err=>{ line('<span class="sys">Realistic voice: browser blocked autoplay — click anywhere, then it will speak.</span>','sys'); });
       return true;
-    }catch(e){ return false; }
+    }catch(e){ line(`<span class="sys">Realistic voice couldn’t reach OpenAI (${esc(String(e).slice(0,120))}). Using the browser voice.</span>`,'sys'); return false; }
   },
   stop(){ try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){} if(this._audio){ try{this._audio.pause();}catch(e){} } }
 };
@@ -1356,13 +1366,18 @@ $('#ttsToggle').addEventListener('click',()=>{ TTS.on=!TTS.on; $('#ttsToggle').c
     const key=document.getElementById('ttsKey').value.trim();
     const voice=document.getElementById('ttsVoice').value;
     const enable=document.getElementById('ttsEnable').checked;
-    TTS.oaKey=key; TTS.oaVoice=voice; TTS.real=enable && !!key;
+    if(key && !enable){ document.getElementById('ttsEnable').checked=true; }   // a key was added → assume they want it on
+    TTS.oaKey=key; TTS.oaVoice=voice; TTS.real=(enable||!!key) && !!key;
     try{ localStorage.setItem('torked_tts_key',key); localStorage.setItem('torked_tts_voice',voice); localStorage.setItem('torked_tts_on',TTS.real?'1':'0'); }catch(e){}
     if(TTS.real && !TTS.on){ TTS.on=true; $('#ttsToggle').classList.add('on'); }
     paintVoiceControls();
-    if(TTS.real){ TTS.speak('By my oath — danger stirs in the dark, and your blade is all that stands between you and ruin!','urgent'); }
-    else { TTS.stop(); }
     document.getElementById('ttsOverlay').classList.remove('show');
+    if(key){
+      // always run the test THROUGH OpenAI so you can hear it (or see exactly why it failed)
+      line('<span class="sys">Testing the realistic narrator…</span>','sys');
+      TTS.speakOpenAI('By my oath — danger stirs in the dark, and your blade is all that stands between you and ruin!','urgent')
+        .then(ok=>{ if(ok) line('<span class="good">✨ Realistic narrator connected — it will now read the tale and react to the action.</span>','good'); });
+    } else { TTS.stop(); }
   }); }
 paintVoiceControls();
 // background music toggle + volume
