@@ -102,8 +102,19 @@
   @keyframes opulse{50%{opacity:.4}}
   .lb-open{cursor:pointer;color:var(--gold);font-family:"Cinzel",serif;font-size:12px;letter-spacing:.5px;text-decoration:none}
   .lb-open:hover{color:var(--gold-bright)}
-  #lbOverlay,#updOverlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(8,6,3,.8);align-items:center;justify-content:center;padding:18px}
-  #lbOverlay.show,#updOverlay.show{display:flex}
+  #lbOverlay,#updOverlay,#ttsOverlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(8,6,3,.8);align-items:center;justify-content:center;padding:18px}
+  #lbOverlay.show,#updOverlay.show,#ttsOverlay.show{display:flex}
+  .tts-body{padding:4px 2px;color:var(--ink);font-size:13.5px;line-height:1.5}
+  .tts-body p{margin:0 0 10px}
+  .tts-body ol{margin:0 0 12px;padding-left:18px} .tts-body li{margin-bottom:4px}
+  .tts-body a{color:var(--gold)}
+  .tts-body label{display:block;font-family:"Cinzel",serif;font-size:11px;letter-spacing:.5px;color:var(--ink-dim);margin:10px 0 4px;text-transform:uppercase}
+  .tts-body input[type=password],.tts-body select{width:100%;box-sizing:border-box;padding:9px 10px;background:#0d0a05;border:1px solid var(--line);border-radius:7px;color:var(--ink);font-size:14px}
+  .tts-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
+  .tts-toggle{display:flex!important;align-items:center;gap:7px;font-family:inherit!important;text-transform:none!important;letter-spacing:0!important;font-size:13.5px!important;color:var(--ink)!important;margin:0!important;cursor:pointer}
+  .tts-toggle input{width:auto!important;accent-color:var(--gold)}
+  #ttsSave{font-family:"Cinzel",serif;font-size:13px;letter-spacing:.5px;color:#2a1c08;background:linear-gradient(#f4cf6b,#d8a93a);border:1px solid #8a6a1e;border-radius:8px;padding:9px 16px;cursor:pointer}
+  .tts-note{margin-top:12px;font-size:11.5px;color:var(--ink-dim)}
   .lb-again{margin-top:14px;width:100%;font-family:"Cinzel",serif;font-size:15px;letter-spacing:.5px;color:#2a1c08;
     background:linear-gradient(#f4cf6b,#d8a93a);border:1px solid #8a6a1e;border-radius:9px;padding:11px;cursor:pointer;box-shadow:0 2px 0 #7a5c18}
   .lb-again:hover{transform:translateY(-1px)}
@@ -461,6 +472,7 @@
         <button id="sfxToggle" class="iconbtn on" title="Sound effects on/off">🔊</button>
         <button id="ttsToggle" class="iconbtn" title="Read narration aloud">🗣️</button>
         <select id="voicePick" class="voicesel" title="Narrator voice" style="display:none"></select>
+        <button id="realVoiceBtn" class="iconbtn" title="Realistic AI narrator (OpenAI)">✨</button>
         <button id="musToggle" class="iconbtn on" title="Background music on/off">🎵</button>
         <input id="musVol" class="musvol" type="range" min="0" max="100" value="32" title="Music volume">
         <button id="autoAtkBtn" class="iconbtn" title="Repeat attack until the fight ends" style="display:none">⚔️↻</button>
@@ -564,6 +576,39 @@
       <div class="lb-list" id="updList"></div>
     </div>
   </div>
+
+  <!-- ============ REALISTIC NARRATOR ============ -->
+  <div id="ttsOverlay">
+    <div class="lb-card">
+      <button class="lb-close" id="ttsClose">✕</button>
+      <h2 class="lb-title">✨ Realistic narrator</h2>
+      <div class="tts-body">
+        <p>Have the tale read aloud by a lifelike AI voice that <b>reacts to the action</b> — urgent in battle, ominous when a boss looms, grave at death. It uses OpenAI's voices with your own key (pennies per session); the free browser voice stays the default.</p>
+        <ol>
+          <li>Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com/api-keys</a> (needs billing enabled — TTS is very cheap).</li>
+          <li>Paste it below and pick a voice, then <b>Save &amp; test</b>.</li>
+        </ol>
+        <label for="ttsKey">OpenAI API key</label>
+        <input id="ttsKey" type="password" placeholder="sk-..." autocomplete="off" />
+        <label for="ttsVoice">Narrator voice</label>
+        <select id="ttsVoice">
+          <option value="ash">Ash — expressive, dramatic (recommended)</option>
+          <option value="ballad">Ballad — warm storyteller</option>
+          <option value="onyx">Onyx — deep &amp; commanding</option>
+          <option value="sage">Sage — calm, wise</option>
+          <option value="fable">Fable — characterful narrator</option>
+          <option value="verse">Verse — lively</option>
+          <option value="coral">Coral — bright</option>
+          <option value="nova">Nova — clear</option>
+        </select>
+        <div class="tts-row">
+          <label class="tts-toggle"><input type="checkbox" id="ttsEnable"> Use realistic voice</label>
+          <button id="ttsSave">Save &amp; test ▸</button>
+        </div>
+        <div class="tts-note">🔒 Your key is stored only in this browser and sent only to OpenAI. Turn this off to use the free built-in voice.</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -630,6 +675,10 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'17 Jun 2026', title:'A Voice That Reacts', items:[
+   'New ✨ Realistic narrator: a lifelike AI voice that reacts to the action',
+   'It turns urgent in battle, ominous when a boss looms, and grave at death',
+   'Bring your own OpenAI key (pennies per session); the free browser voice stays the default']},
  {date:'17 Jun 2026', title:'Easy Setup & a Better Voice', items:[
    'New 2-minute PDF guide on the home screen: how to get a free key and connect it',
    'Read-aloud narration now picks a far more natural, storyteller voice',
@@ -760,12 +809,55 @@ const TTS = {
     this.voice = vs.slice().sort((a,b)=>this.score(b)-this.score(a))[0] || vs[0];
   },
   setVoice(idOrName){ const vs=speechSynthesis.getVoices(); const v=vs.find(x=>x.voiceURI===idOrName||x.name===idOrName); if(v){ this.voice=v; this.chosen=v.voiceURI||v.name; try{localStorage.setItem('torked_voice',this.chosen);}catch(e){} } },
-  speak(text){ if(!this.on||!('speechSynthesis' in window)||!text) return; speechSynthesis.cancel();
-    // gentle storyteller cadence: a touch slower, natural pitch
-    const u=new SpeechSynthesisUtterance(text.slice(0,600)); if(this.voice) u.voice=this.voice; u.rate=0.9; u.pitch=1.0; u.volume=1; speechSynthesis.speak(u); },
-  stop(){ if('speechSynthesis' in window) speechSynthesis.cancel(); }
+  // ----- realistic OpenAI narration (bring-your-own-key, browser-direct) -----
+  real:false, oaKey:'', oaVoice:'ash', _audio:null,
+  speak(text, mood){ if(!this.on||!text) return;
+    if(this.real && this.oaKey){ this.speakOpenAI(text, mood).then(ok=>{ if(!ok) this.speakBrowser(text, mood); }); return; }
+    this.speakBrowser(text, mood);
+  },
+  speakBrowser(text, mood){ if(!('speechSynthesis' in window)) return; speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text.slice(0,600)); if(this.voice) u.voice=this.voice;
+    // browser voices can't emote much, but nudge the cadence by mood
+    const r={grave:0.84,ominous:0.85,urgent:1.02,delighted:0.98,narrator:0.9}[mood||'narrator'];
+    u.rate=r||0.9; u.pitch=mood==='urgent'?1.06:1.0; u.volume=1; speechSynthesis.speak(u); },
+  async speakOpenAI(text, mood){
+    if(!this.oaKey) return false;
+    try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){}
+    const instr=(MOOD_INSTR[mood||'narrator']||MOOD_INSTR.narrator);
+    try{
+      const r=await fetch('https://api.openai.com/v1/audio/speech',{method:'POST',
+        headers:{'content-type':'application/json','authorization':'Bearer '+this.oaKey},
+        body:JSON.stringify({model:'gpt-4o-mini-tts',voice:this.oaVoice||'ash',input:text.slice(0,900),instructions:instr,response_format:'mp3'})});
+      if(!r.ok){ if(r.status===401) line('<span class="sys">Realistic voice: that OpenAI key was refused — falling back to the browser voice.</span>','sys'); return false; }
+      const buf=await r.arrayBuffer(); const url=URL.createObjectURL(new Blob([buf],{type:'audio/mpeg'}));
+      if(this._audio){ try{this._audio.pause();}catch(e){} }
+      this._audio=new Audio(url); this._audio.onended=()=>URL.revokeObjectURL(url);
+      await this._audio.play().catch(()=>{});
+      return true;
+    }catch(e){ return false; }
+  },
+  stop(){ try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){} if(this._audio){ try{this._audio.pause();}catch(e){} } }
 };
-try{ TTS.chosen=localStorage.getItem('torked_voice')||null; }catch(e){}
+// per-event delivery styles for the realistic narrator
+const MOOD_INSTR={
+  narrator:'You are a warm, immersive medieval-fantasy storyteller. Read this measured and vivid, drawing the listener into the scene.',
+  ominous:'Read this in a low, slow, ominous and dramatic tone — a great danger is looming. Build dread.',
+  urgent:'Read this with urgent, alarmed, breathless intensity — danger is happening right now, as if shouting a warning in battle.',
+  delighted:'Read this with bright, delighted, triumphant energy — something wonderful just happened.',
+  grave:'Read this in a grave, somber, mournful tone — a moment of death and finality. Slow and heavy.'
+};
+function narrationMood(o){
+  try{
+    if((o&&o.game_over)||G.hp<=0) return 'grave';
+    if(o&&o.boss_present) return 'ominous';
+    if((o&&(o.in_combat||o.hp_delta<0))||G.foe) return 'urgent';
+    if(o&&(o.chest||o.boss_defeated||o.enemy_defeated||o.reward||o.clever_solution||o.found_key||(o.gold_delta>0))) return 'delighted';
+  }catch(e){}
+  return 'narrator';
+}
+try{ TTS.chosen=localStorage.getItem('torked_voice')||null;
+     TTS.oaKey=localStorage.getItem('torked_tts_key')||''; TTS.oaVoice=localStorage.getItem('torked_tts_voice')||'ash';
+     TTS.real=localStorage.getItem('torked_tts_on')==='1' && !!TTS.oaKey; }catch(e){}
 function buildVoiceMenu(){ const sel=document.getElementById('voicePick'); if(!sel) return; const vs=TTS.voiceList(); if(!vs.length) return;
   const ranked=vs.slice().sort((a,b)=>TTS.score(b)-TTS.score(a));
   sel.innerHTML=ranked.map(v=>`<option value="${(v.voiceURI||v.name).replace(/"/g,'')}"${(TTS.voice&&(v.voiceURI===TTS.voice.voiceURI))?' selected':''}>${(v.name||'Voice').replace(/[<>]/g,'')}</option>`).join('');
@@ -1243,10 +1335,36 @@ document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click
 }));
 // sound + read-aloud toggles
 $('#sfxToggle').addEventListener('click',()=>{ SFX.on=!SFX.on; SFX.init(); $('#sfxToggle').classList.toggle('on',SFX.on); $('#sfxToggle').textContent=SFX.on?'🔊':'🔇'; if(SFX.on) SFX.play('gold'); });
+function paintVoiceControls(){ const vp=document.getElementById('voicePick'), rb=document.getElementById('realVoiceBtn');
+  if(vp) vp.style.display=(TTS.on && !TTS.real)?'':'none';   // browser-voice picker only matters for the free voice
+  if(rb) rb.classList.toggle('on',TTS.real); }
 $('#ttsToggle').addEventListener('click',()=>{ TTS.on=!TTS.on; $('#ttsToggle').classList.toggle('on',TTS.on);
-  const vp=document.getElementById('voicePick'); if(vp) vp.style.display=TTS.on?'':'none';
-  if(TTS.on){ TTS.pickVoice(); buildVoiceMenu(); TTS.speak('Your tale shall be told aloud.'); } else TTS.stop(); });
-{ const vp=document.getElementById('voicePick'); if(vp) vp.addEventListener('change',e=>{ TTS.setVoice(e.target.value); TTS.speak('A new voice takes up the tale.'); }); }
+  paintVoiceControls();
+  if(TTS.on){ TTS.pickVoice(); buildVoiceMenu(); TTS.speak('Your tale shall be told aloud.', 'narrator'); } else TTS.stop(); });
+{ const vp=document.getElementById('voicePick'); if(vp) vp.addEventListener('change',e=>{ TTS.setVoice(e.target.value); TTS.speak('A new voice takes up the tale.','narrator'); }); }
+// ✨ realistic narrator setup
+{ const rb=document.getElementById('realVoiceBtn'); if(rb) rb.addEventListener('click',()=>{
+    const ov=document.getElementById('ttsOverlay'); if(!ov) return;
+    document.getElementById('ttsKey').value=TTS.oaKey||'';
+    document.getElementById('ttsVoice').value=TTS.oaVoice||'ash';
+    document.getElementById('ttsEnable').checked=!!TTS.real;
+    ov.classList.add('show');
+  }); }
+{ const c=document.getElementById('ttsClose'); if(c) c.addEventListener('click',()=>document.getElementById('ttsOverlay').classList.remove('show')); }
+{ const ov=document.getElementById('ttsOverlay'); if(ov) ov.addEventListener('click',e=>{ if(e.target.id==='ttsOverlay') ov.classList.remove('show'); }); }
+{ const sv=document.getElementById('ttsSave'); if(sv) sv.addEventListener('click',()=>{
+    const key=document.getElementById('ttsKey').value.trim();
+    const voice=document.getElementById('ttsVoice').value;
+    const enable=document.getElementById('ttsEnable').checked;
+    TTS.oaKey=key; TTS.oaVoice=voice; TTS.real=enable && !!key;
+    try{ localStorage.setItem('torked_tts_key',key); localStorage.setItem('torked_tts_voice',voice); localStorage.setItem('torked_tts_on',TTS.real?'1':'0'); }catch(e){}
+    if(TTS.real && !TTS.on){ TTS.on=true; $('#ttsToggle').classList.add('on'); }
+    paintVoiceControls();
+    if(TTS.real){ TTS.speak('By my oath — danger stirs in the dark, and your blade is all that stands between you and ruin!','urgent'); }
+    else { TTS.stop(); }
+    document.getElementById('ttsOverlay').classList.remove('show');
+  }); }
+paintVoiceControls();
 // background music toggle + volume
 (function(){ const mb=$('#musToggle'), mv=$('#musVol'); if(!mb) return;
   mv.value=Math.round(MUSIC.vol*100);
@@ -1690,7 +1808,7 @@ async function applyTurn(raw,cmd){
   hud();   // refresh stats/location immediately, before the text types out
   line(`<span class="room-name">${esc(G.location)}</span>`);
   await typeLine(o.narration||'', o.hp_delta<0?'dmg':'');
-  if(TTS.on) TTS.speak(o.narration||'');
+  if(TTS.on) TTS.speak(o.narration||'', narrationMood(o));
   if(_showMerch) showMerchant();
   // survival signals from the GM
   if(o.drank_water===true){ G.thirst=G.maxThirst; }
@@ -1764,7 +1882,7 @@ async function demoTurn(raw){
     else if(r<0.57){ G.merchant=makeMerchant(G.depth); merchHere=true; s+=` ${G.merchant.name} has set up a tiny stall by the wayside.`; }
     hud(); await typeLine(s, G.foe?'dmg':'good');
     if(merchHere) showMerchant();
-    if(TTS.on) TTS.speak(s);
+    if(TTS.on) TTS.speak(s, G.foe?(G.foe.boss?'ominous':'urgent'):'narrator');
     const ev=pickEvent(G.location); if(ev && !G.over) await fireEventDemo(ev);
     return;
   }
