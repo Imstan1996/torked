@@ -688,6 +688,11 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'17 Jun 2026', title:'A Wilder Bestiary', items:[
+   'Nearly 60 new monsters that show up in the right places — wolves in forests, bog lurkers in swamps, skeletons in crypts, bandits on the roads',
+   'Tougher and weaker foes with fitting health, so fights vary',
+   'More frequent encounters out in the wild',
+   'Offline-demo runs no longer post to the leaderboard']},
  {date:'17 Jun 2026', title:'Magic, Bows & Mega Bosses', items:[
    'Mega bosses appear after 100 turns — a metallic dragon, archmage, lich-king and more, brutally hard but beatable',
    'Each mega boss drops one unique MYTHIC item from its own set (Draconic, Arcane, Necrotic…) — stronger than legendary',
@@ -1887,6 +1892,7 @@ STARTING STATE: The player begins UNARMED and owns NOTHING — no weapon, no arm
 LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. Treasure CHESTS are UNCOMMON — do not put a chest in every scene; reserve "chest": true for the occasional genuine find (a guarded vault, a hidden cache, a reward). When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". RARELY (a small chance), the player stumbles on something useful left in the world — a weapon by a fallen traveller, a dropped waterskin, supplies in an abandoned pack: when that happens set "enemy_defeated": true (it triggers the same drop logic) and narrate the body or pack. You MAY narrate treasure flavour, but the game generates the actual items.
 COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given. Whenever a creature or boss is fighting the player set "in_combat": true and fill "enemy" with its name, current hp, max_hp and attack so the GAME can show its health bar; LOWER enemy.hp as the player wounds it, and when it dies or the fight ends set "in_combat": false (and "boss_defeated": true if it was a boss). The STATE "combat" line gives the player's active weapon type and their melee/magic/ranged power — scale how much damage they deal to the type of weapon they wield. Bows need arrows (see STATE); with none, the player can only fight in melee.
 MAGIC & ARCHERY (strict limits): The player can wield melee weapons, MAGIC weapons (staffs/wands + robes for magic damage) and BOWS (ranged, needing arrows). Magic and arrows hurt enemies through ordinary damage only. HARD RULES that count as cheating ("cheat_attempt": true) if the player tries them: NO teleportation, NO portals, NO blink/recall/translocation, NO summoning gateways, and NO instant-kill / death-touch / "I slay it instantly" magic. Spells and shots deal damage over normal combat rounds — they never bypass an enemy's health or move the player impossibly across the map. A fireball or arrow wounds; it does not delete a foe outright.
+MONSTERS & ENCOUNTERS (vary them, and fit them to the place): the wild is dangerous — bring on frequent, varied creatures suited to the terrain, and give each a sensible health/attack via the "enemy" fields. Draw on a wide bestiary, e.g. FOREST/PLAINS: wolves, dire wolves, boars, bears, giant spiders, goblins, an enraged stag, bandits. ROADS/CAMPS: bandits, archers, highwaymen, deserters, brigand chiefs, cultists. MOUNTAINS/SNOW: snow leopards, frost wolves, yetis, rock trolls, harpies, griffons, frost wraiths. MARSH/SWAMP: bog lurkers, giant leeches, will-o'-wisps, swamp hags, mire serpents, plague rats. CAVES/MINES: cave bats, cave spiders, kobolds, cave trolls, rock crawlers, gnolls. RUINS/CRYPTS/BARROWS: skeletons, ghouls, wraiths, cursed knights, animated armour, zombies, spectres. RIVERS/COAST: giant crabs, river drakes, sahuagin, sirens. Anywhere: ogres, wyverns, hellhounds. Scale HP to threat — a rat or kobold has low hp, a wolf or bandit middling, a troll/ogre/cursed knight is a hard slog. Don't repeat the same creature every fight.
 MEGA BOSSES (only after the player has survived 100+ turns — see STATE "turns survived"): very rarely, a colossal unique foe appears — a vast metallic dragon, an ancient archmage, a lich-king, a titan of stone, a storm-sorceress. They are EXTREMELY tough (huge hp, hard hits) but beatable with good gear and grit. When one appears set "boss_present": true, "mega_boss": true, and "mega_set" to its set name (one of: Draconic, Arcane, Necrotic, Titanforged, Tempest). Keep these set while it fights. When the player finally slays it, set "boss_defeated": true AND keep "mega_set" — the GAME drops ONE unique MYTHIC item from that set (mythic is rarer and stronger than legendary). Do NOT spawn mega bosses before 100 turns.
 SURVIVAL (hunger, thirst, bleeding — the GAME owns the numbers): The player has HUNGER and THIRST (shown in STATE) that slowly drain as they travel. They restore them by eating food and drinking water they carry, OR by drinking straight from a natural source. When the player drinks clean water from a river, stream, creek, brook, well, spring, fountain, lake or waterfall present in the scene, set "drank_water": true (the GAME refills thirst — do not invent amounts). Describe water sources in the world so the player can find them. BLEEDING: when the player suffers a slashing or piercing wound from a sharp blade (sword, spear, dagger, axe, claws), set "bleeding": true — the GAME applies a bleed that drains vitality over a few turns until they use a bandage; do NOT invent its damage. Do not set these flags unless it genuinely happens in the fiction.
 PUZZLES, RIDDLES, KEYS & LOCKS (make the player explore and think): Seed the world with LOCKED doors, barred gates, sealed chests and shut vaults that the player cannot simply walk through. To pass, they must FIND something or SOLVE something — search the room, examine objects, pull a lever, answer a riddle, fetch a key. Reward curiosity: hidden things should reveal themselves when the player looks, searches or examines. KEYS: when the player legitimately obtains a key (found while searching, looted from a body, given by an NPC, or earned by solving something), set "found_key": true (optionally "key_name", e.g. "Rusted Iron Key") so the GAME puts it in their satchel — then later honour that they hold it. Check the STATE satchel for keys they already carry; a locked door they have the key for should open. RIDDLES & PUZZLES: pose real riddles and small puzzles guarding rewards. When the player correctly solves a riddle/puzzle or opens a lock through genuine effort, set "reward": true so the GAME grants a loot reward (and you may also set "clever_solution": true for bonus score). Never hand out the reward for a wrong or lazy answer — that is a cheat_attempt.
@@ -2063,8 +2069,9 @@ async function applyTurn(raw,cmd){
 }
 function endGame(msg){ if(G._ended) return; G._ended=true; G.over=true; clearSave(); AUTO_ATK=false; try{MUSIC.stop();}catch(e){} SFX.play('hurt');
   line(esc(msg),'death'); line(`Final score: ${G.score} · Travels ${G.depth} · Gold ${G.gold}`,'sys'); $('#cmd').disabled=true;
-  const nm=(G.char&&G.char.name)||'Wanderer'; submitScore(nm, G.score);
-  if(G.score>0) line('<span class="sys">Your score has been carved into the Hall of Heroes.</span>');
+  const nm=(G.char&&G.char.name)||'Wanderer';
+  if(G.cfg.demo){ line('<span class="sys">This was the offline demo — scores from the demo are not recorded on the Hall of Heroes.</span>'); }
+  else { submitScore(nm, G.score); if(G.score>0) line('<span class="sys">Your score has been carved into the Hall of Heroes.</span>'); }
   const ds=document.getElementById('deathScreen');
   if(ds){ ds.classList.remove('show'); void ds.offsetWidth; ds.classList.add('show'); setTimeout(()=>{ ds.classList.remove('show'); openLeaderboard(nm, G.score, true); }, 2400); }
   else openLeaderboard(nm, G.score, true);
@@ -2090,6 +2097,93 @@ const D={adj:['Blackpine','Misty','Windswept','Thornwood','Greymoor','Old','Bria
     {text:'A few coins glint in the dirt where someone fell.', make:()=>makeCoins(G.depth)}
   ]};
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+// ---------- area-appropriate monster bestiary ----------
+// tiers: 0 weak · 1 normal · 2 tough · 3 elite.  t = biomes where it can appear ('any' = anywhere)
+const MONSTERS=[
+  {n:'a snarling grey wolf',t:['forest','plains','snow'],tier:1},
+  {n:'a dire wolf',t:['forest','mountain','snow'],tier:2},
+  {n:'a wild boar',t:['forest','plains'],tier:1},
+  {n:'a hulking black bear',t:['forest','mountain'],tier:2},
+  {n:'a giant forest spider',t:['forest','cave'],tier:2},
+  {n:'a venomous adder',t:['forest','marsh','plains'],tier:0},
+  {n:'a pack of feral dogs',t:['plains','road','ruins'],tier:1},
+  {n:'an enraged stag',t:['forest','plains'],tier:1},
+  {n:'a moss-backed forest troll',t:['forest','mountain'],tier:3},
+  {n:'a goblin scavenger',t:['forest','cave','ruins'],tier:0},
+  {n:'a band of goblin raiders',t:['forest','plains','road'],tier:1},
+  {n:'a hobgoblin warrior',t:['forest','mountain','ruins'],tier:2},
+  {n:'a swarm of stinging hornets',t:['forest','marsh'],tier:0},
+  {n:'a ragged bandit',t:['road','plains','bandit','forest'],tier:1},
+  {n:'a bandit archer',t:['road','bandit','ruins'],tier:1},
+  {n:'a masked highwayman',t:['road','bandit'],tier:2},
+  {n:'a deserter soldier',t:['road','ruins','plains'],tier:2},
+  {n:'a brigand chieftain',t:['bandit','road'],tier:3},
+  {n:'a sneering cutpurse',t:['road','bandit'],tier:0},
+  {n:'a scarred mercenary',t:['road','ruins','bandit'],tier:2},
+  {n:'a charging mountain ram',t:['mountain','snow'],tier:0},
+  {n:'a snow leopard',t:['mountain','snow'],tier:2},
+  {n:'a frost wolf',t:['snow','mountain'],tier:2},
+  {n:'a shaggy yeti',t:['snow','mountain'],tier:3},
+  {n:'a lumbering rock troll',t:['mountain','cave'],tier:3},
+  {n:'a shrieking harpy',t:['mountain','coast'],tier:2},
+  {n:'a wheeling griffon',t:['mountain'],tier:3},
+  {n:'a drifting frost wraith',t:['snow','ruins'],tier:2},
+  {n:'a bloated giant leech',t:['marsh','water'],tier:0},
+  {n:'a clawed bog lurker',t:['marsh'],tier:2},
+  {n:'a flickering will-o’-wisp',t:['marsh','forest'],tier:1},
+  {n:'a cackling swamp hag',t:['marsh'],tier:3},
+  {n:'a giant marsh toad',t:['marsh','water'],tier:1},
+  {n:'a coiling mire serpent',t:['marsh','water'],tier:2},
+  {n:'a seething plague-rat swarm',t:['marsh','ruins','cave'],tier:1},
+  {n:'a flapping swarm of cave bats',t:['cave'],tier:0},
+  {n:'a giant cave spider',t:['cave','ruins'],tier:2},
+  {n:'a scrabbling kobold miner',t:['cave'],tier:0},
+  {n:'a massive cave troll',t:['cave','mountain'],tier:3},
+  {n:'a chittering rock crawler',t:['cave'],tier:1},
+  {n:'a deep gnoll',t:['cave','ruins'],tier:2},
+  {n:'a rattling skeleton warrior',t:['ruins','undead','cave'],tier:1},
+  {n:'a risen ghoul',t:['ruins','undead','marsh'],tier:1},
+  {n:'a moaning wraith',t:['ruins','undead'],tier:2},
+  {n:'a cursed knight',t:['ruins','undead'],tier:3},
+  {n:'a clanking animated armour',t:['ruins'],tier:2},
+  {n:'a shambling crypt zombie',t:['ruins','undead','cave'],tier:1},
+  {n:'a wailing spectre',t:['ruins','undead'],tier:2},
+  {n:'a bone archer',t:['ruins','undead'],tier:1},
+  {n:'a grave-warden in rusted mail',t:['ruins','undead'],tier:3},
+  {n:'a snapping giant crab',t:['coast','water'],tier:1},
+  {n:'a sahuagin raider',t:['coast','water'],tier:2},
+  {n:'a river drake',t:['water','coast'],tier:2},
+  {n:'a luring siren',t:['coast','water'],tier:2},
+  {n:'a rabid jackal',t:['plains','road','any'],tier:0},
+  {n:'a brutish ogre',t:['forest','mountain','cave','any'],tier:3},
+  {n:'a hissing wyvern',t:['mountain','marsh','any'],tier:3},
+  {n:'a hooded cultist',t:['ruins','road','any'],tier:1},
+  {n:'a smouldering hellhound',t:['ruins','cave','any'],tier:2},
+];
+const MTIER=[{hp:6,atk:2},{hp:13,atk:4},{hp:24,atk:7},{hp:40,atk:11}];
+function locBiomes(name){ const n=(name||'').toLowerCase(); const tags=[];
+  if(/forest|wood|pine|grove|thicket|glade|copse|briar/.test(n)) tags.push('forest');
+  if(/cave|cavern|grotto|tunnel|mine|hollow/.test(n)) tags.push('cave');
+  if(/barrow|crypt|tomb|catacomb|graveyard|ossuary/.test(n)){tags.push('undead');tags.push('ruins');}
+  if(/mountain|peak|pass|cliff|crag|highland|ridge/.test(n)) tags.push('mountain');
+  if(/marsh|swamp|bog|fen|mire|moor/.test(n)) tags.push('marsh');
+  if(/ruin|keep|castle|tower|fort|abbey|monaster|watchtower|barracks/.test(n)) tags.push('ruins');
+  if(/river|creek|coast|lake|shore|bridge|ford|mill|brook|harbou?r|beach|cove/.test(n)){tags.push('water');tags.push('coast');}
+  if(/village|town|city|market|tavern|road|crossroad|gate|square|hamlet/.test(n)) tags.push('road');
+  if(/camp|hideout|\bden\b|lair/.test(n)) tags.push('bandit');
+  if(/snow|frost|ice|glacier|frozen|wintry/.test(n)) tags.push('snow');
+  if(!tags.length) tags.push('plains');
+  return tags; }
+function pickMonster(loc, depth){
+  const tags=locBiomes(loc);
+  let pool=MONSTERS.filter(m=>m.t.some(b=>tags.includes(b)||b==='any'));
+  if(!pool.length) pool=MONSTERS.filter(m=>m.t.includes('any')||m.t.includes('plains'));
+  if(!pool.length) pool=MONSTERS;
+  const m=rnd(pool), base=MTIER[m.tier||1];
+  const hp=Math.max(4,Math.round((base.hp + (depth||0)*2.2) * (0.85+Math.random()*0.35)));
+  const atk=base.atk + Math.floor((depth||0)*0.45);
+  return {name:m.n, hp, maxHp:hp, atk, boss:false};
+}
 async function demoStart(){
   line(`<span class="room-name">Blackpine Crossroads</span>`);
   await typeLine('You stand where two muddy roads cross at the edge of a dark pine forest. A weathered signpost creaks in the wind; smoke rises from a village to the south, and a grey keep looms on the eastern hills.');
@@ -2117,7 +2211,7 @@ async function demoTurn(raw){
       s+=` The ground shakes — ${mb.blurb}. ${mb.name.toUpperCase()} has come for you!`; showBossBanner('MEGA BOSS · '+mb.name.toUpperCase());
     }
     else if(G.depth>0 && G.depth%5===0 && r<0.7){ const hp=30+G.depth*6; G.foe={name:rnd(D.boss),hp,maxHp:hp,atk:6+G.depth,boss:true}; s+=` A monstrous presence rises to meet you — ${G.foe.name}!`; showBossBanner(G.foe.name.toUpperCase()); }
-    else if(r<0.28){ const hp=8+G.depth*2; G.foe={name:rnd(D.foe),hp,maxHp:hp,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} springs from cover.`; }
+    else if(r<0.34){ G.foe=pickMonster(name, G.depth); s+=` ${cap(G.foe.name)} ${rnd(['springs from cover','blocks your path','snarls and lunges','rises to meet you','emerges from the shadows','bars the way ahead'])}.`; }
     else if(r<0.36){ G.chestHere=true; s+=' A banded travelling-chest lies half-hidden in the grass.'; }   // chests are now rarer (~8%)
     else if(r<0.43){ const find=rnd(D.find); s+=` ${find.text}`; const it=find.make(); setTimeout(()=>grantLoot([it]),500); }   // rare item lying around (~7%)
     else if(r<0.57){ G.merchant=makeMerchant(G.depth); merchHere=true; s+=` ${G.merchant.name} has set up a tiny stall by the wayside.`; }
