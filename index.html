@@ -101,6 +101,16 @@
   .lb-open:hover{color:var(--gold-bright)}
   #lbOverlay,#updOverlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(8,6,3,.8);align-items:center;justify-content:center;padding:18px}
   #lbOverlay.show,#updOverlay.show{display:flex}
+  .lb-again{margin-top:14px;width:100%;font-family:"Cinzel",serif;font-size:15px;letter-spacing:.5px;color:#2a1c08;
+    background:linear-gradient(#f4cf6b,#d8a93a);border:1px solid #8a6a1e;border-radius:9px;padding:11px;cursor:pointer;box-shadow:0 2px 0 #7a5c18}
+  .lb-again:hover{transform:translateY(-1px)}
+  /* death screen */
+  #deathScreen{position:fixed;inset:0;z-index:130;display:none;align-items:center;justify-content:center;pointer-events:none}
+  #deathScreen.show{display:flex;animation:deathbg 2.4s ease forwards}
+  @keyframes deathbg{0%{background:rgba(30,0,0,0)}28%{background:rgba(18,0,0,.92)}100%{background:rgba(0,0,0,.94)}}
+  #deathScreen .ds-text{font-family:"Cinzel",serif;font-weight:700;font-size:8vw;letter-spacing:6px;color:#9a1414;text-shadow:0 2px 30px rgba(180,20,20,.55);opacity:0}
+  #deathScreen.show .ds-text{animation:deathtext 2.4s ease forwards}
+  @keyframes deathtext{0%{opacity:0;transform:scale(1.4)}28%{opacity:1;transform:scale(1)}82%{opacity:1}100%{opacity:0}}
   .upd-open{cursor:pointer;color:var(--gold);font-family:"Cinzel",serif;font-size:12px;letter-spacing:.5px;text-decoration:none}
   .upd-open:hover{color:var(--gold-bright)}
   .cl-entry{padding:4px 0 12px;border-top:1px solid var(--line)}
@@ -170,6 +180,13 @@
     background:#120e07;color:var(--ink);cursor:pointer;opacity:.5;transition:.15s}
   .iconbtn.on{opacity:1;border-color:var(--gold);box-shadow:0 0 10px rgba(216,169,58,.25)}
   .iconbtn:hover{opacity:1}
+  .musvol{width:62px;height:4px;vertical-align:middle;accent-color:var(--gold);cursor:pointer}
+  /* red damage flash when the player is hurt */
+  #dmgFlash{position:fixed;inset:0;z-index:120;pointer-events:none;opacity:0;
+    background:radial-gradient(ellipse at center, rgba(150,10,10,0) 40%, rgba(150,10,10,.55) 100%)}
+  #dmgFlash.hit{animation:dmgpulse .5s ease-out}
+  @keyframes dmgpulse{0%{opacity:0}25%{opacity:1}100%{opacity:0}}
+  @keyframes dmgpop{0%{opacity:0;transform:translateX(-50%) translateY(6px) scale(.8)}20%{opacity:1;transform:translateX(-50%) translateY(0) scale(1.1)}100%{opacity:0;transform:translateX(-50%) translateY(-34px) scale(1)}}
   /* boss banner */
   #bossBanner{position:fixed;left:50%;top:34%;transform:translate(-50%,-50%) scale(.6);
     z-index:50;text-align:center;pointer-events:none;opacity:0;display:none;width:90%;max-width:760px}
@@ -310,15 +327,15 @@
     <div class="howto">
       <div class="howto-title">Get your free key — 30 seconds, no card</div>
       <ol>
-        <li>Tap the gold button below to open the <b>Groq</b> console, and sign in (Google or GitHub works).</li>
-        <li>Click <b>Create API Key</b>, give it any name, then <b>Submit</b>.</li>
-        <li><b>Copy</b> the key it shows you and paste it in the box below.</li>
+        <li>Tap the gold button below to open <b>Google AI Studio</b>, and sign in with your Google account.</li>
+        <li>Click <b>Create API key</b> (accept the terms if asked) — a key starting with <b>AIza…</b> appears.</li>
+        <li><b>Copy</b> it and paste it in the box below. That's it — it's free, ~1,500 plays a day, no card.</li>
       </ol>
-      <a class="getkey" href="https://console.groq.com/keys" target="_blank" rel="noopener">🔑 Get my free Groq key →</a>
+      <a class="getkey" href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">🔑 Get my free Gemini key →</a>
     </div>
 
-    <label for="obKey">Paste your Groq key here</label>
-    <input id="obKey" type="password" placeholder="gsk_..." autocomplete="off" />
+    <label for="obKey">Paste your Gemini key here</label>
+    <input id="obKey" type="password" placeholder="AIza..." autocomplete="off" />
     <div class="btns"><button id="obBegin">Begin your quest</button></div>
     <div class="hint" style="margin-top:14px">
       <a id="obDemo" style="cursor:pointer;color:var(--gold)">Try the offline demo first</a>
@@ -350,9 +367,9 @@
 
     <label for="provider">Engine</label>
     <select id="provider">
-      <option value="groq" selected>Groq — FREE cloud key, very fast (recommended)</option>
+      <option value="gemini" selected>Google Gemini — FREE, 1,500/day (recommended)</option>
       <option value="ollama">Ollama — FREE, local &amp; unlimited (no key)</option>
-      <option value="gemini">Google Gemini — FREE cloud key, smart</option>
+      <option value="groq">Groq — FREE cloud key, very fast</option>
       <option value="hf">Hugging Face — uses your Pro credits</option>
     </select>
 
@@ -422,6 +439,7 @@
   <!-- ============ GAME ============ -->
   <section id="game">
     <div id="bossBanner"><div class="bb-sub">A mighty foe blocks your path</div><div class="bb-name"></div></div>
+    <div id="dmgFlash"></div>
     <div class="topbar">
       <div class="brand logo-text">TORKED</div>
       <div class="right">
@@ -430,6 +448,9 @@
         <span class="mini" id="modeTag"></span>
         <button id="sfxToggle" class="iconbtn on" title="Sound effects on/off">🔊</button>
         <button id="ttsToggle" class="iconbtn" title="Read narration aloud">🗣️</button>
+        <button id="musToggle" class="iconbtn on" title="Background music on/off">🎵</button>
+        <input id="musVol" class="musvol" type="range" min="0" max="100" value="32" title="Music volume">
+        <button id="autoAtkBtn" class="iconbtn" title="Repeat attack until the fight ends" style="display:none">⚔️↻</button>
         <a class="coffee" href="https://www.paypal.me/vacdesigns" target="_blank" rel="noopener">☕ Buy me a coffee!</a><a class="follow" href="https://x.com/GrowWithStan" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>Follow @GrowWithStan</a>
       </div>
     </div>
@@ -516,8 +537,10 @@
       <button class="lb-close" id="lbClose">✕</button>
       <h2 class="lb-title">🏆 Hall of Heroes</h2>
       <div class="lb-list" id="lbList"><div class="lb-loading">Summoning the rankings…</div></div>
+      <button id="lbPlayAgain" class="lb-again" style="display:none">↻ Play again</button>
     </div>
   </div>
+  <div id="deathScreen"><div class="ds-text">YOU DIED</div></div>
 
   <!-- ============ WHAT'S NEW ============ -->
   <div id="updOverlay">
@@ -568,8 +591,9 @@ function submitScore(name, score){
   if(!DB || !(score>0)) return;
   try{ DB.ref('scores').push({name:String(name||'Wanderer').slice(0,18), score:Math.round(score), ts:Date.now()}); }catch(e){}
 }
-function openLeaderboard(myName, myScore){
+function openLeaderboard(myName, myScore, died){
   const ov=document.getElementById('lbOverlay'), list=document.getElementById('lbList'); if(!ov) return;
+  const pa=document.getElementById('lbPlayAgain'); if(pa) pa.style.display=died?'block':'none';
   ov.classList.add('show'); list.innerHTML='<div class="lb-loading">Summoning the rankings…</div>';
   if(!DB){ list.innerHTML='<div class="lb-empty">Leaderboard unavailable right now.</div>'; return; }
   try{ DB.ref('scores').orderByChild('score').limitToLast(25).once('value', s=>{
@@ -586,11 +610,20 @@ function openLeaderboard(myName, myScore){
 }
 document.querySelectorAll('.lb-open').forEach(b=>b.addEventListener('click',()=>openLeaderboard()));
 { const lc=document.getElementById('lbClose'); if(lc) lc.addEventListener('click',()=>document.getElementById('lbOverlay').classList.remove('show')); }
+{ const pa=document.getElementById('lbPlayAgain'); if(pa) pa.addEventListener('click',()=>{ clearSave(); location.reload(); }); }
 { const lo=document.getElementById('lbOverlay'); if(lo) lo.addEventListener('click',e=>{ if(e.target.id==='lbOverlay') lo.classList.remove('show'); }); }
 initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'17 Jun 2026', title:'Sound, Steel & Secrets', items:[
+   'Medieval background music with an on/off toggle and a volume slider',
+   'Repeat-attack button — keep swinging automatically until the fight ends',
+   'Enemy blows now flash the screen red and show the damage dealt',
+   'A "YOU DIED" death screen, then the leaderboard with a Play again button',
+   'Locked doors, keys, riddles and puzzles to find and solve for rewards',
+   'Chests are rarer now, with the occasional weapon or supplies found out in the world',
+   'Recommended engine switched to Google Gemini (free, ~1,500 plays/day)']},
  {date:'16 Jun 2026', title:'Survive the Wilds', items:[
    'Hunger & thirst now drain as you travel — eat food and drink to stay strong',
    'Drink straight from rivers, creeks, wells and fountains, or carry vials of water',
@@ -689,6 +722,53 @@ const TTS = {
 };
 if('speechSynthesis' in window){ TTS.pickVoice(); speechSynthesis.onvoiceschanged=()=>TTS.pickVoice(); }
 
+// ---------- procedural medieval background music (lute air + drone) ----------
+const MUSIC = {
+  ctx:null, master:null, on:false, vol:0.32, tempo:82, seq:null, _timer:null, _i:0, _next:0, _droneAt:0, _wantOn:true,
+  init(){
+    if(this.ctx) return;
+    try{ const AC=window.AudioContext||window.webkitAudioContext; this.ctx=new AC(); }catch(e){ return; }
+    this.master=this.ctx.createGain(); this.master.gain.value=this.vol; this.master.connect(this.ctx.destination);
+    const N=n=>220*Math.pow(2,n/12);   // semitones above A3 — A-Aeolian (medieval) mode
+    const P={A3:N(0),B3:N(2),C4:N(3),D4:N(5),E4:N(7),F4:N(8),G4:N(10),A4:N(12),B4:N(14),C5:N(15),D5:N(17)};
+    this.seq=[ [P.A4,1],[P.C5,1],[P.B4,1],[P.A4,1],[P.E4,2],[P.F4,1],[P.E4,1],
+      [P.D4,1],[P.E4,1],[P.F4,1],[P.G4,1],[P.A4,2],[0,1],[P.A4,1],
+      [P.G4,1],[P.F4,1],[P.E4,1],[P.D4,1],[P.C4,2],[P.B3,1],[P.C4,1],
+      [P.D4,1],[P.E4,1],[P.C4,1],[P.A3,1],[P.A3,2],[0,2] ];   // [freq, beats]; 0 = rest
+  },
+  _pluck(f,t,beats){ if(!f) return;
+    const o=this.ctx.createOscillator(), g=this.ctx.createGain(), lp=this.ctx.createBiquadFilter();
+    o.type='triangle'; o.frequency.value=f; lp.type='lowpass'; lp.frequency.value=2400;
+    const dur=Math.min(beats*60/this.tempo,1.7);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.5,t+0.012); g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+    o.connect(lp); lp.connect(g); g.connect(this.master); o.start(t); o.stop(t+dur+0.05); },
+  _drone(f,t,dur){ const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type='sine'; o.frequency.value=f;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(0.11,t+0.5); g.gain.setValueAtTime(0.11,t+dur-0.6); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t+dur+0.05); },
+  start(){ this.init(); if(!this.ctx) return; if(this.ctx.state==='suspended') this.ctx.resume();
+    this.on=true; if(this._timer) return;
+    const spb=60/this.tempo; this._next=this.ctx.currentTime+0.15; this._droneAt=this._next; this._i=0;
+    this._timer=setInterval(()=>{ if(!this.on||!this.ctx) return; const now=this.ctx.currentTime;
+      while(this._next<now+0.4){ const s=this.seq[this._i]; this._pluck(s[0],this._next,s[1]); this._next+=s[1]*spb; this._i=(this._i+1)%this.seq.length; }
+      while(this._droneAt<now+0.4){ this._drone(110,this._droneAt,8*spb); this._drone(164.81,this._droneAt,8*spb); this._droneAt+=8*spb; }
+    },140); },
+  stop(){ this.on=false; if(this._timer){ clearInterval(this._timer); this._timer=null; } },
+  setVol(v){ this.vol=v; if(this.master) this.master.gain.value=v; this._save(); },
+  toggle(){ if(this.on) this.stop(); else this.start(); this._wantOn=this.on; this._save(); return this.on; },
+  _save(){ try{ localStorage.setItem('torked_music', JSON.stringify({on:this._wantOn,vol:this.vol})); }catch(e){} }
+};
+try{ const m=JSON.parse(localStorage.getItem('torked_music')||'null'); if(m){ if(typeof m.vol==='number') MUSIC.vol=m.vol; MUSIC._wantOn=(m.on!==false); } }catch(e){}
+
+// red screen flash + a damage popup when the player is wounded
+function flashDamage(amount){
+  const f=document.getElementById('dmgFlash');
+  if(f){ f.classList.remove('hit'); void f.offsetWidth; f.classList.add('hit'); }
+  if(amount){ const g=document.getElementById('game'); if(g){ const pop=document.createElement('div'); pop.className='dmg-pop'; pop.textContent='-'+amount;
+    pop.style.cssText='position:fixed;left:50%;top:32%;transform:translateX(-50%);z-index:121;color:#ff5a4a;font-family:"Cinzel",serif;font-weight:700;font-size:34px;text-shadow:0 2px 8px #000;pointer-events:none;animation:dmgpop 1s ease-out forwards';
+    g.appendChild(pop); setTimeout(()=>pop.remove(),1000); } }
+}
+
 // boss announcement banner
 let _bossShown=null;
 function showBossBanner(name){
@@ -738,12 +818,12 @@ const ICON = {
 };
 const COLOR = {common:'#cdc7b6',rare:'#5aa0e0',epic:'#b277e6',legendary:'#f4a623'};
 // keys that have a painted 2D art icon (icon-<key>.png in the folder)
-const IMG_ICONS = new Set(['weapon','head','body','legs','shield','hands','feet','ring','amulet','potion','coin','chest','staff','water','meat','bread','bandage']);
+const IMG_ICONS = new Set(['weapon','head','body','legs','shield','hands','feet','ring','amulet','potion','coin','chest','staff','water','meat','bread','bandage','key']);
 function svgVec(name, rarity, size){   // always the simple vector silhouette (for empty slots)
   const c = COLOR[rarity]||'#cdc7b6';
   return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${c}" stroke="none">${ICON[name]||ICON.misc}</svg>`;
 }
-const ICON_EMOJI={weapon:'⚔️',head:'🪖',body:'🦺',legs:'👖',shield:'🛡️',hands:'🧤',feet:'🥾',ring:'💍',amulet:'📿',potion:'🧪',coin:'🪙',chest:'🧰',staff:'🪄',water:'💧',meat:'🍖',bread:'🍞',bandage:'🩹'};
+const ICON_EMOJI={weapon:'⚔️',head:'🪖',body:'🦺',legs:'👖',shield:'🛡️',hands:'🧤',feet:'🥾',ring:'💍',amulet:'📿',potion:'🧪',coin:'🪙',chest:'🧰',staff:'🪄',water:'💧',meat:'🍖',bread:'🍞',bandage:'🩹',key:'🗝️'};
 function iconFallback(img,glyph){ try{ const s=document.createElement('span'); s.className='emoji-icon'; s.textContent=glyph; s.style.fontSize=Math.round((img.width||20)*0.92)+'px'; s.style.lineHeight='1'; img.replaceWith(s); }catch(e){} }
 function svg(name, rarity, size=26){
   if(IMG_ICONS.has(name)){ const g=ICON_EMOJI[name]||'📦'; return `<img class="art" src="icon-${name}.png" width="${size}" height="${size}" alt="" draggable="false" onerror="iconFallback(this,'${g}')">`; }
@@ -803,6 +883,8 @@ function makeFood(){
     name:'Loaf of Bread', hunger:30, hp:3, value:6}; }
 function makeBandage(){ return {id:uid(),type:'bandage',use:'bandage',icon:'bandage',rarity:'common',
   name:'Linen Bandage', hp:5, value:7}; }
+function makeKey(name){ return {id:uid(),type:'key',icon:'key',rarity:'rare',
+  name:(name&&String(name).trim())||'Iron Key', value:0}; }
 
 // roll a batch of loot for a chest / boss
 function genLoot(bias, depth, count){
@@ -901,8 +983,8 @@ const PROVIDERS = {
     models:[['llama3.2','Llama 3.2 3B — light & quick'],['llama3.1:8b','Llama 3.1 8B'],['qwen2.5:7b','Qwen2.5 7B'],['mistral','Mistral 7B']],
     hint:'100% free & local. Install <a href="https://ollama.com" target="_blank" rel="noopener">ollama.com</a>, run e.g. <code>ollama pull llama3.2</code>, keep it running.'},
   gemini:{base:'https://generativelanguage.googleapis.com/v1beta/openai',needsKey:true,keyLabel:'Google AI Studio key',keyPh:'AIza...',
-    models:[['gemini-2.5-flash','Gemini 2.5 Flash — smart & free'],['gemini-2.5-flash-lite','Gemini 2.5 Flash-Lite — faster'],['gemini-2.5-pro','Gemini 2.5 Pro — best']],
-    hint:'Free, 1,500 requests/day. Key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.'},
+    models:[['gemini-2.5-flash-lite','Gemini 2.5 Flash-Lite — fast, 30/min (recommended)'],['gemini-2.5-flash','Gemini 2.5 Flash — smarter, 15/min'],['gemini-2.5-pro','Gemini 2.5 Pro — best (paid)']],
+    hint:'Free, ~1,500 plays/day, no card. Key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.'},
   hf:{base:'https://router.huggingface.co/v1',needsKey:true,keyLabel:'Hugging Face token',keyPh:'hf_...',
     models:[['openai/gpt-oss-120b','GPT-OSS 120B'],['meta-llama/Llama-3.3-70B-Instruct','Llama 3.3 70B Instruct'],['Qwen/Qwen2.5-72B-Instruct','Qwen2.5 72B Instruct'],['deepseek-ai/DeepSeek-V3','DeepSeek V3']],
     hint:'Uses your HF Pro credits. Token at <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">huggingface.co/settings/tokens</a>.'},
@@ -914,7 +996,7 @@ function applyProvider(name){
   $('#keyWrap').style.display=p.needsKey?'block':'none'; $('#providerHint').innerHTML=p.hint;
 }
 $('#provider').addEventListener('change',e=>{ applyProvider(e.target.value); });
-applyProvider('groq');
+applyProvider('gemini');
 
 // remember engine + key across sessions (stored locally in this browser only)
 const LS_KEY='torked_cfg_v1';
@@ -990,11 +1072,12 @@ function startLive(){
 }
 $('#startBtn').addEventListener('click',startLive);
 
-// ---- first-run onboarding ("tunnel"): grab a free Groq key and go ----
+// ---- first-run onboarding ("tunnel"): grab a free Gemini key and go ----
 $('#obBegin').addEventListener('click',()=>{
-  $('#provider').value='groq'; applyProvider('groq');
+  $('#provider').value='gemini'; applyProvider('gemini');
+  $('#model').value='gemini-2.5-flash-lite';
   $('#key').value=$('#obKey').value.trim();
-  if(!startLive()){ $('#obKey').focus(); $('#obKey').placeholder='paste your gsk_ key here to begin'; }
+  if(!startLive()){ $('#obKey').focus(); $('#obKey').placeholder='paste your AIza... key here to begin'; }
 });
 $('#obKey').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#obBegin').click(); });
 $('#obDemo').addEventListener('click',()=>{ $('#onboard').style.display='none'; $('#demoBtn').click(); });
@@ -1003,7 +1086,7 @@ $('#obAdv').addEventListener('click',()=>{ $('#onboard').style.display='none'; $
 // show the simple onboarding only on a fresh first visit (no remembered key, not file://)
 if(!isFile){
   $('#setup').style.display='none'; $('#onboard').style.display='block';   // simplified instructions screen is the default login, always
-  if($('#provider').value==='groq'){ const k=$('#key').value.trim(); if(k) $('#obKey').value=k; }   // prefill remembered Groq key
+  if($('#provider').value==='gemini'){ const k=$('#key').value.trim(); if(k) $('#obKey').value=k; }   // prefill remembered Gemini key
 }
 $('#demoBtn').addEventListener('click',()=>{
   G.cfg={provider:'',base_url:'',token:'',model:'',difficulty:$('#diff').value,seed:$('#seed').value.trim(),demo:true};
@@ -1107,6 +1190,20 @@ document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click
 // sound + read-aloud toggles
 $('#sfxToggle').addEventListener('click',()=>{ SFX.on=!SFX.on; SFX.init(); $('#sfxToggle').classList.toggle('on',SFX.on); $('#sfxToggle').textContent=SFX.on?'🔊':'🔇'; if(SFX.on) SFX.play('gold'); });
 $('#ttsToggle').addEventListener('click',()=>{ TTS.on=!TTS.on; $('#ttsToggle').classList.toggle('on',TTS.on); if(TTS.on){ TTS.pickVoice(); TTS.speak('Your tale shall be told aloud.'); } else TTS.stop(); });
+// background music toggle + volume
+(function(){ const mb=$('#musToggle'), mv=$('#musVol'); if(!mb) return;
+  mv.value=Math.round(MUSIC.vol*100);
+  function paint(){ mb.classList.toggle('on',MUSIC.on); mb.style.opacity=MUSIC.on?'1':'.45'; }
+  mb.addEventListener('click',()=>{ MUSIC.toggle(); paint(); });
+  mv.addEventListener('input',e=>{ const v=(+e.target.value)/100; MUSIC.setVol(v); if(v>0 && !MUSIC.on){ MUSIC.start(); MUSIC._wantOn=true; MUSIC._save(); paint(); } });
+  paint();
+})();
+// repeat-attack toggle — keeps swinging until the fight ends
+let AUTO_ATK=false;
+(function(){ const b=$('#autoAtkBtn'); if(!b) return;
+  b.addEventListener('click',()=>{ AUTO_ATK=!AUTO_ATK; b.classList.toggle('on',AUTO_ATK); b.title=AUTO_ATK?'Auto-attack ON — click to stop':'Repeat attack until the fight ends';
+    if(AUTO_ATK && G.foe && !G.busy){ $('#cmd').value='attack'; submitCommand(); } });
+})();
 let cmdHist=[],histPos=-1;
 $('#cmd').addEventListener('keydown',e=>{
   if(e.key==='ArrowUp'&&cmdHist.length){histPos=Math.max(0,histPos-1);$('#cmd').value=cmdHist[histPos];e.preventDefault();}
@@ -1188,6 +1285,8 @@ function renderWorn(){
 }
 function renderFoe(){
   const fp=$('#foePanel'), f=G.foe;
+  const ab=document.getElementById('autoAtkBtn');
+  if(ab) ab.style.display=(f && (f.hp==null||f.hp>0))?'':'none';
   if(!f || (f.hp!=null && f.hp<=0)){ fp.style.display='none'; fp.classList.remove('boss'); return; }
   const max=f.maxHp||f.hp||1, pct=Math.max(0,Math.min(100,(f.hp/max)*100));
   fp.classList.toggle('boss', !!f.boss); fp.style.display='block';
@@ -1208,14 +1307,16 @@ function renderDetail(src){
   if(it.type==='water') stats.push(`Quenches <b>+${it.thirst}</b> thirst`);
   if(it.type==='food'){ stats.push(`Restores <b>+${it.hunger}</b> hunger`); if(it.hp) stats.push(`Vitality <b>+${it.hp}</b>`); }
   if(it.type==='bandage') stats.push(`Stops bleeding · Vitality <b>+${it.hp}</b>`);
+  if(it.type==='key') stats.push('Opens a matching locked door or chest');
   if(it.type==='coins') stats.push(`Worth <b>${it.amount}</b> gold`);
   if(it.value) stats.push(`Value <b>${it.value}</b>g`);
   const worn = it.slot && G.worn[it.slot] && G.worn[it.slot].id===it.id;
   const useLabel={potion:'Drink',water:'Drink',food:'Eat',bandage:'Bind'}[it.type];
-  const kindLabel={potion:'Potion',water:'Water',food:'Food',bandage:'Aid'}[it.type]||'';
+  const kindLabel={potion:'Potion',water:'Water',food:'Food',bandage:'Aid',key:'Key'}[it.type]||'';
   let actions='';
   if(it.type==='coins') actions=`<button data-act="collect">Collect</button>`;
   else if(useLabel) actions=`<button data-act="use">${useLabel}</button><button class="ghost" data-act="drop">Drop</button>`;
+  else if(it.type==='key') actions=`<button class="ghost" data-act="drop">Drop</button>`;
   else if(it.slot) actions = worn?`<button data-act="unequip">Unequip</button>`:`<button data-act="equip">Equip</button><button class="ghost" data-act="drop">Drop</button>`;
   d.innerHTML=`<div class="dt-name r-${it.rarity}">${svg(it.icon,it.rarity,22)} ${esc(it.name)}</div>
     <div class="dt-meta"><span class="r-${it.rarity}">${RARITY[it.rarity].label}</span>${it.slot?` · ${SLOT_LBL[it.slot]}`:kindLabel?` · ${kindLabel}`:''}</div>
@@ -1294,12 +1395,14 @@ function endOfTurn(){
   if(G.bleed>0){ dmg+=SURV.bleedDmg; G.bleed--; msgs.push(`<span class="dmg">🩸 You are bleeding (−${SURV.bleedDmg}).</span>`); SFX.play('hurt'); }
   if(G.thirst<=0){ dmg+=SURV.starveDmg; msgs.push(`<span class="dmg">💧 Parched with thirst (−${SURV.starveDmg}).</span>`); }
   if(G.hunger<=0){ dmg+=SURV.starveDmg; msgs.push(`<span class="dmg">🍖 Starving (−${SURV.starveDmg}).</span>`); }
-  if(dmg>0) G.hp=Math.max(0,G.hp-dmg);
+  if(dmg>0){ G.hp=Math.max(0,G.hp-dmg); flashDamage(dmg); }
   if(G.thirst>0 && G.thirst<=20 && !G._tw){ msgs.push('<span class="sys">Your throat is parched — find water soon.</span>'); G._tw=true; } if(G.thirst>20) G._tw=false;
   if(G.hunger>0 && G.hunger<=20 && !G._hw){ msgs.push('<span class="sys">Your stomach aches with hunger — you must eat.</span>'); G._hw=true; } if(G.hunger>20) G._hw=false;
   if(msgs.length) line(msgs.join(' '), dmg>0?'dmg':'sys');
   hud();
-  if(G.hp<=0 && !G.over) endGame('Your body fails you in the wilds. The realm claims another nameless adventurer.');
+  if(G.hp<=0 && !G.over){ endGame('Your body fails you in the wilds. The realm claims another nameless adventurer.'); return; }
+  // repeat-attack: keep swinging while a foe stands
+  if(AUTO_ATK && G.foe && !G.over){ setTimeout(()=>{ if(AUTO_ATK && G.foe && !G.busy && !G.over){ $('#cmd').value='attack'; submitCommand(); } }, 850); }
 }
 // drinking straight from a natural water source (text-driven)
 function isDrinkWater(cmd){
@@ -1316,6 +1419,7 @@ function drinkFromSource(){
 // ---------- start ----------
 async function beginGame(){
   SFX.init();   // unlock audio on this user gesture
+  if(MUSIC._wantOn){ MUSIC.start(); const mb=$('#musToggle'); if(mb){ mb.classList.toggle('on',MUSIC.on); mb.style.opacity=MUSIC.on?'1':'.45'; } }
   $('#setup').style.display='none'; $('#onboard').style.display='none'; $('#charCreate').style.display='none'; $('#game').style.display='flex';
   if(!G._resumed){ G.bag=[]; G.worn={}; G.equipHp=0; G.atk=0; G.def=0; G.hunger=G.maxHunger; G.thirst=G.maxThirst; G.bleed=0; }   // spawn empty-handed: no gear, weak unarmed damage, well-fed
   recompute(); hud(); renderProfile(); $('#cmd').focus();
@@ -1395,9 +1499,10 @@ STYLE: Address the player as "you". Write like classic Zork: plain, concrete, an
 PERIL: ${peril}
 
 STARTING STATE: The player begins UNARMED and owns NOTHING — no weapon, no armour, an empty satchel. Their bare-handed blows are weak. Never describe them as already equipped or armed at the start; every weapon, piece of armour and item must be found, looted, bought, or taken during play. Check the STATE worn/satchel lists — those are the only things they have.
-LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". You MAY narrate treasure flavour, but the game generates the actual items.
+LOOT RULES: You do NOT invent item stats or rarity — the GAME rolls loot. Treasure CHESTS are UNCOMMON — do not put a chest in every scene; reserve "chest": true for the occasional genuine find (a guarded vault, a hidden cache, a reward). When the player opens/finds a treasure chest, set "chest": true. When the player defeats a powerful boss, set "boss_defeated": true and give a big "score_delta". For ordinary kills give modest score. Coins/gold go via "gold_delta". RARELY (a small chance), the player stumbles on something useful left in the world — a weapon by a fallen traveller, a dropped waterskin, supplies in an abandoned pack: when that happens set "enemy_defeated": true (it triggers the same drop logic) and narrate the body or pack. You MAY narrate treasure flavour, but the game generates the actual items.
 COMBAT: On each attack the GAME rolls a six-sided die; the result is appended to the player's command as [DICE ROLL = N]. A 6 is a CRITICAL HIT — the player's weapon deals 5x damage that strike, so narrate a devastating blow. Any other number is an ordinary strike. Honour the dice you are given. Whenever a creature or boss is fighting the player set "in_combat": true and fill "enemy" with its name, current hp, max_hp and attack so the GAME can show its health bar; LOWER enemy.hp as the player wounds it, and when it dies or the fight ends set "in_combat": false (and "boss_defeated": true if it was a boss).
 SURVIVAL (hunger, thirst, bleeding — the GAME owns the numbers): The player has HUNGER and THIRST (shown in STATE) that slowly drain as they travel. They restore them by eating food and drinking water they carry, OR by drinking straight from a natural source. When the player drinks clean water from a river, stream, creek, brook, well, spring, fountain, lake or waterfall present in the scene, set "drank_water": true (the GAME refills thirst — do not invent amounts). Describe water sources in the world so the player can find them. BLEEDING: when the player suffers a slashing or piercing wound from a sharp blade (sword, spear, dagger, axe, claws), set "bleeding": true — the GAME applies a bleed that drains vitality over a few turns until they use a bandage; do NOT invent its damage. Do not set these flags unless it genuinely happens in the fiction.
+PUZZLES, RIDDLES, KEYS & LOCKS (make the player explore and think): Seed the world with LOCKED doors, barred gates, sealed chests and shut vaults that the player cannot simply walk through. To pass, they must FIND something or SOLVE something — search the room, examine objects, pull a lever, answer a riddle, fetch a key. Reward curiosity: hidden things should reveal themselves when the player looks, searches or examines. KEYS: when the player legitimately obtains a key (found while searching, looted from a body, given by an NPC, or earned by solving something), set "found_key": true (optionally "key_name", e.g. "Rusted Iron Key") so the GAME puts it in their satchel — then later honour that they hold it. Check the STATE satchel for keys they already carry; a locked door they have the key for should open. RIDDLES & PUZZLES: pose real riddles and small puzzles guarding rewards. When the player correctly solves a riddle/puzzle or opens a lock through genuine effort, set "reward": true so the GAME grants a loot reward (and you may also set "clever_solution": true for bonus score). Never hand out the reward for a wrong or lazy answer — that is a cheat_attempt.
 LOOTING THE DEAD: When the player slays an ORDINARY (non-boss) enemy, or loots a fallen traveller/corpse, set "enemy_defeated": true so the GAME drops their gear — often a weapon (spear, sword, dagger, axe…), and sometimes food, water or a bandage. The GAME generates the actual items; you just narrate the body and what's scattered around it.
 NPCs & MERCHANTS: Populate the land with people — hermits, pilgrims, guards, beggars, wandering minstrels. Occasionally a TRAVELLING MERCHANT appears who sells exactly ONE item. When a merchant is present, set "merchant": true (and optionally "merchant_name"); the GAME picks the single item, its rarity and its gold price, and handles the purchase when the player types "buy". Keep "merchant": true on later turns while that merchant is still with the player (see the STATE "merchant" line); once the player buys or moves on, stop setting it. Do NOT invent your own prices or hand over items yourself — the GAME does the trade.
 
@@ -1421,6 +1526,9 @@ Reply with ONLY one JSON object, no markdown:
   "enemy_defeated": false,   // true the turn an ordinary foe is slain or a corpse is looted (game drops gear/weapon/supplies)
   "drank_water": false,      // true when the player drinks clean water from a natural source in the scene (game refills thirst)
   "bleeding": false,         // true the turn the player takes a slashing/piercing wound (game starts a bleed)
+  "found_key": false,        // true when the player obtains a key (game adds it to the satchel)
+  "key_name": "",            // name of that key, e.g. "Rusted Iron Key"
+  "reward": false,           // true when the player solves a riddle/puzzle or opens a lock through real effort (game grants a loot reward)
   "merchant": false,         // true while a travelling merchant is present (game sets item/price, handles "buy")
   "merchant_name": "",       // the merchant's name/title, if any
   "cheat_attempt": false,    // true the turn the player tries to rewrite reality / conjure items, powers or wins (game raises suspicion & penalises)
@@ -1486,7 +1594,7 @@ async function applyTurn(raw,cmd){
   const prevLoc=G.location;
   if(typeof o.location==='string'&&o.location) G.location=o.location;
   if(Array.isArray(o.exits)) G.exits=o.exits;
-  if(Number.isFinite(o.hp_delta)){ G.hp=Math.min(G.maxHp,G.hp+o.hp_delta); if(o.hp_delta<0) SFX.play('hurt'); }
+  if(Number.isFinite(o.hp_delta)){ G.hp=Math.min(G.maxHp,G.hp+o.hp_delta); if(o.hp_delta<0){ SFX.play('hurt'); flashDamage(-o.hp_delta); if(G.foe&&G.foe.name) line(`<span class="dmg">${cap(G.foe.name)} strikes you for ${-o.hp_delta}!</span>`,'dmg'); } }
   if(Number.isFinite(o.mp_delta)) G.mp=Math.max(0,Math.min(G.maxMp,G.mp+o.mp_delta));
   if(Number.isFinite(o.gold_delta)){ if(o.gold_delta>0) SFX.play('gold'); G.gold=Math.max(0,G.gold+o.gold_delta); }
   if(Number.isFinite(o.score_delta)) G.score+=o.score_delta;
@@ -1520,6 +1628,8 @@ async function applyTurn(raw,cmd){
   // survival signals from the GM
   if(o.drank_water===true){ G.thirst=G.maxThirst; }
   if(o.bleeding===true && G.bleed<=0){ G.bleed=SURV.bleedTurns; SFX.play('hurt'); line('<span class="dmg">🩸 A blade opens a bleeding wound! Bind it with a bandage.</span>','dmg'); }
+  if(o.found_key===true){ const k=makeKey(o.key_name); G.bag.push(k); SFX.play('loot'); line(`🗝️ You obtain the <span class="r-rare">${esc(k.name)}</span>.`,'good'); }
+  if(o.reward===true){ line('<span class="good">Solved! A reward is yours.</span>','good'); grantLoot(genLoot('chest',G.depth)); }
   // loot & bosses (game-controlled)
   if(o.boss_defeated){ const sc=120+G.depth*45; G.score+=sc; line(`<span class="boss">The boss falls! +${sc} score.</span>`,'boss'); grantLoot(killLoot(G.depth,true)); }
   else if(o.enemy_defeated===true){ line('<span class="good">Your foe falls. You rifle through what they dropped.</span>','good'); grantLoot(killLoot(G.depth,false)); }
@@ -1527,9 +1637,13 @@ async function applyTurn(raw,cmd){
   recompute(); endOfTurn();
   if(!G.over && o.game_over===true){ endGame(o.ending||'Your tale ends here.'); }
 }
-function endGame(msg){ G.over=true; clearSave(); line(esc(msg),'death'); line(`Final score: ${G.score} · Travels ${G.depth} · Gold ${G.gold}`,'sys'); line('Reload to forge a new realm.','sys'); $('#cmd').disabled=true;
+function endGame(msg){ if(G._ended) return; G._ended=true; G.over=true; clearSave(); AUTO_ATK=false; try{MUSIC.stop();}catch(e){} SFX.play('hurt');
+  line(esc(msg),'death'); line(`Final score: ${G.score} · Travels ${G.depth} · Gold ${G.gold}`,'sys'); $('#cmd').disabled=true;
   const nm=(G.char&&G.char.name)||'Wanderer'; submitScore(nm, G.score);
-  if(G.score>0){ line('<span class="sys">Your score has been carved into the Hall of Heroes.</span>'); setTimeout(()=>openLeaderboard(nm, G.score), 900); }
+  if(G.score>0) line('<span class="sys">Your score has been carved into the Hall of Heroes.</span>');
+  const ds=document.getElementById('deathScreen');
+  if(ds){ ds.classList.remove('show'); void ds.offsetWidth; ds.classList.add('show'); setTimeout(()=>{ ds.classList.remove('show'); openLeaderboard(nm, G.score, true); }, 2400); }
+  else openLeaderboard(nm, G.score, true);
 }
 
 // =====================================================================
@@ -1541,7 +1655,16 @@ const D={adj:['Blackpine','Misty','Windswept','Thornwood','Greymoor','Old','Bria
   enter:['A Moss-grown Cave Mouth','The Gates of a Crumbling Castle','A Walled City Gate','A Bustling Village Square','A Roadside Tavern','A Bandit Hideout','A Smoke-wreathed War Camp','An Abandoned Watchtower','A Barrow Beneath the Hill','A Deep Mountain Cave',"A Hermit's Hut",'A Riverside Mill','A Ruined Monastery'],
   detail:['Birdsong drifts through the trees and the wind smells of coming rain.','A weathered signpost points toward distant rooftops.','A clear creek chuckles over stones nearby — fresh water.','Wildflowers nod over the ruins of an old boundary wall.','Smoke rises from a chimney somewhere beyond the treeline.','A mossy stone well stands at the path’s edge.','Crows watch you from a leaning, lightning-split oak.','Snow-capped peaks loom grey against the horizon.'],
   foe:['a snarling wolf','a ragged bandit','a wild boar','a lurching ghoul','a giant forest spider'],
-  boss:['Grakka the Bonebreaker','the Briar Witch','Sir Mordrec the Fallen','the Great Stag-Wyrm']};
+  boss:['Grakka the Bonebreaker','the Briar Witch','Sir Mordrec the Fallen','the Great Stag-Wyrm'],
+  // rare items found lying around the world (corpses, abandoned packs…) — low chance
+  find:[
+    {text:'A dead traveller lies in the ditch; a weapon still rests in their grip.', make:()=>makeGear('weapon', rollRarity('normal'), G.depth)},
+    {text:'A rusted blade is half-buried in the mud by the road.', make:()=>makeGear('weapon','common', G.depth)},
+    {text:'A dropped waterskin lies among the reeds.', make:()=>makeWater()},
+    {text:'A satchel spilled from a fallen packhorse holds some food.', make:()=>makeFood()},
+    {text:'A blood-stiff bandage is tucked in a dead soldier’s belt.', make:()=>makeBandage()},
+    {text:'A few coins glint in the dirt where someone fell.', make:()=>makeCoins(G.depth)}
+  ]};
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 async function demoStart(){
   line(`<span class="room-name">Blackpine Crossroads</span>`);
@@ -1565,9 +1688,10 @@ async function demoTurn(raw){
     G.score+=2; G.foe=null; G.chestHere=false; G.merchant=null;
     let merchHere=false;
     if(G.depth>0 && G.depth%5===0 && r<0.7){ const hp=30+G.depth*6; G.foe={name:rnd(D.boss),hp,maxHp:hp,atk:6+G.depth,boss:true}; s+=` A monstrous presence rises to meet you — ${G.foe.name}!`; showBossBanner(G.foe.name.toUpperCase()); }
-    else if(r<0.30){ const hp=8+G.depth*2; G.foe={name:rnd(D.foe),hp,maxHp:hp,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} springs from cover.`; }
-    else if(r<0.50){ G.chestHere=true; s+=' A banded travelling-chest lies half-hidden in the grass.'; }
-    else if(r<0.66){ G.merchant=makeMerchant(G.depth); merchHere=true; s+=` ${G.merchant.name} has set up a tiny stall by the wayside.`; }
+    else if(r<0.28){ const hp=8+G.depth*2; G.foe={name:rnd(D.foe),hp,maxHp:hp,atk:3+Math.floor(G.depth/2),boss:false}; s+=` ${cap(G.foe.name)} springs from cover.`; }
+    else if(r<0.36){ G.chestHere=true; s+=' A banded travelling-chest lies half-hidden in the grass.'; }   // chests are now rarer (~8%)
+    else if(r<0.43){ const find=rnd(D.find); s+=` ${find.text}`; const it=find.make(); setTimeout(()=>grantLoot([it]),500); }   // rare item lying around (~7%)
+    else if(r<0.57){ G.merchant=makeMerchant(G.depth); merchHere=true; s+=` ${G.merchant.name} has set up a tiny stall by the wayside.`; }
     hud(); await typeLine(s, G.foe?'dmg':'good');
     if(merchHere) showMerchant();
     if(TTS.on) TTS.speak(s);
@@ -1594,7 +1718,7 @@ async function demoTurn(raw){
       line(`${die}You hit for ${dmg}. ${cap(G.foe.name)} falls! <span class="${boss?'boss':'good'}">+${sc} score.</span>`, boss?'boss':'good');
       grantLoot(killLoot(G.depth, boss)); G.foe=null; hud(); return;
     }
-    const back=Math.max(1, ri(1,G.foe.atk)-Math.floor(G.def/2)); G.hp=Math.max(0,G.hp-back); SFX.play('hurt');
+    const back=Math.max(1, ri(1,G.foe.atk)-Math.floor(G.def/2)); G.hp=Math.max(0,G.hp-back); SFX.play('hurt'); flashDamage(back);
     let bleedMsg='';
     if(G.bleed<=0 && Math.random()<0.28){ G.bleed=SURV.bleedTurns; bleedMsg=' <span class="dmg">🩸 Its blade opens a bleeding gash!</span>'; }
     line(`${die}You hit for ${dmg}; ${G.foe.name} (${Math.max(0,G.foe.hp)} hp) rakes you for ${back}.${bleedMsg}`, crit?'good':'dmg'); hud();
