@@ -990,7 +990,7 @@ const SURV={ hungerDrain:1, thirstDrain:2, starveDmg:2, bleedDmg:2, bleedTurns:4
 // ---------- provider presets ----------
 const PROVIDERS = {
   cerebras:{base:'https://api.cerebras.ai/v1',needsKey:true,keyLabel:'Cerebras API key',keyPh:'csk-...',
-    models:[['llama-3.3-70b','Llama 3.3 70B — smart & blazing fast (recommended)'],['llama-4-scout-17b-16e-instruct','Llama 4 Scout 17B — newer'],['llama3.1-8b','Llama 3.1 8B — fastest'],['qwen-3-32b','Qwen 3 32B']],
+    models:[['gpt-oss-120b','GPT-OSS 120B — smart & blazing fast (recommended)'],['zai-glm-4.7','GLM 4.7 — bigger, smarter (preview)']],
     hint:'Free, ~1,000,000 tokens/day, no card. Key at <a href="https://cloud.cerebras.ai" target="_blank" rel="noopener">cloud.cerebras.ai</a>.'},
   groq:{base:'https://api.groq.com/openai/v1',needsKey:true,keyLabel:'Groq API key',keyPh:'gsk_...',
     models:[['openai/gpt-oss-120b','GPT-OSS 120B — fast & sharp (recommended)'],['llama-3.3-70b-versatile','Llama 3.3 70B Versatile'],['llama-3.1-8b-instant','Llama 3.1 8B Instant — fastest'],['qwen/qwen3-32b','Qwen3 32B']],
@@ -1091,7 +1091,7 @@ $('#startBtn').addEventListener('click',startLive);
 // ---- first-run onboarding ("tunnel"): grab a free Cerebras key and go ----
 $('#obBegin').addEventListener('click',()=>{
   $('#provider').value='cerebras'; applyProvider('cerebras');
-  $('#model').value='llama-3.3-70b';
+  $('#model').value='gpt-oss-120b';
   $('#key').value=$('#obKey').value.trim();
   if(!startLive()){ $('#obKey').focus(); $('#obKey').placeholder='paste your csk- key here to begin'; }
 });
