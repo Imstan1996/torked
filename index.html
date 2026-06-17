@@ -79,6 +79,9 @@
     color:#2a1c08;background:linear-gradient(#f4cf6b,#d8a93a);border:1px solid #8a6a1e;border-radius:8px;padding:11px;
     box-shadow:0 2px 0 #7a5c18,0 6px 16px rgba(216,169,58,.22)}
   .getkey:hover{filter:brightness(1.07)}
+  .guidelink{text-align:center;margin-top:9px}
+  .guidelink a{font-size:12.5px;color:var(--gold);text-decoration:none;border-bottom:1px dotted var(--gold)}
+  .guidelink a:hover{color:var(--gold-bright)}
   .resumeBtn{display:none;width:100%;margin:0 0 16px;cursor:pointer;font-family:"Cinzel",serif;font-size:15px;letter-spacing:.5px;
     padding:13px;border-radius:8px;border:1px solid #4a7a3a;background:linear-gradient(#27451c,#162b10);color:#d4ecb6}
   .resumeBtn:hover{background:linear-gradient(#33571f,#1c3713);box-shadow:0 0 16px rgba(120,180,90,.25)}
@@ -181,6 +184,8 @@
   .iconbtn.on{opacity:1;border-color:var(--gold);box-shadow:0 0 10px rgba(216,169,58,.25)}
   .iconbtn:hover{opacity:1}
   .musvol{width:62px;height:4px;vertical-align:middle;accent-color:var(--gold);cursor:pointer}
+  .voicesel{max-width:140px;font-family:"IM Fell English",serif;font-size:11.5px;color:var(--ink);background:#120e07;
+    border:1px solid var(--line);border-radius:7px;padding:4px 6px;cursor:pointer}
   /* red damage flash when the player is hurt */
   #dmgFlash{position:fixed;inset:0;z-index:120;pointer-events:none;opacity:0;
     background:radial-gradient(ellipse at center, rgba(150,10,10,0) 40%, rgba(150,10,10,.55) 100%)}
@@ -335,6 +340,7 @@
         <li><b>Copy</b> it and paste it in the box below. It's free, ~1,000,000 tokens a day, no card.</li>
       </ol>
       <a class="getkey" href="https://cloud.cerebras.ai" target="_blank" rel="noopener">🔑 Get my free Cerebras key →</a>
+      <div class="guidelink"><a href="torked-api-guide.pdf" target="_blank" rel="noopener">📄 New here? Open the 2-minute setup guide (PDF)</a></div>
     </div>
 
     <label for="obKey">Paste your Cerebras key here</label>
@@ -344,6 +350,8 @@
       <a id="obDemo" style="cursor:pointer;color:var(--gold)">Try the offline demo first</a>
       &nbsp;·&nbsp;
       <a id="obAdv" style="cursor:pointer;color:var(--ink-dim)">Use a different engine</a>
+      &nbsp;·&nbsp;
+      <a href="torked-api-guide.pdf" target="_blank" rel="noopener" style="color:var(--ink-dim)">📄 Setup guide</a>
     </div>
 
     <details class="howplay">
@@ -452,6 +460,7 @@
         <span class="mini" id="modeTag"></span>
         <button id="sfxToggle" class="iconbtn on" title="Sound effects on/off">🔊</button>
         <button id="ttsToggle" class="iconbtn" title="Read narration aloud">🗣️</button>
+        <select id="voicePick" class="voicesel" title="Narrator voice" style="display:none"></select>
         <button id="musToggle" class="iconbtn on" title="Background music on/off">🎵</button>
         <input id="musVol" class="musvol" type="range" min="0" max="100" value="32" title="Music volume">
         <button id="autoAtkBtn" class="iconbtn" title="Repeat attack until the fight ends" style="display:none">⚔️↻</button>
@@ -621,6 +630,10 @@ initPresence();
 
 // ----- What's new / changelog -----
 const CHANGELOG=[
+ {date:'17 Jun 2026', title:'Easy Setup & a Better Voice', items:[
+   'New 2-minute PDF guide on the home screen: how to get a free key and connect it',
+   'Read-aloud narration now picks a far more natural, storyteller voice',
+   'Choose your own narrator from the new voice menu (next to 🗣️)']},
  {date:'17 Jun 2026', title:'Faster Engine', items:[
    'Recommended engine switched to Cerebras — free, ~1,000,000 tokens a day, and lightning fast',
    'Grab a free key at cloud.cerebras.ai; Gemini, Groq and local Ollama are still available too']},
@@ -723,16 +736,41 @@ function weaponSfx(){
 //  TEXT-TO-SPEECH — read narration aloud with the least-robotic voice
 // ====================================================================
 const TTS = {
-  on:false, voice:null,
+  on:false, voice:null, chosen:null,
+  // rank every available voice — prefer modern neural/natural voices, British storyteller tone
+  score(v){
+    const n=(v.name||'').toLowerCase(), lang=(v.lang||'').toLowerCase(); let s=0;
+    if(/natural|neural|online|premium|enhanced|siri/.test(n)) s+=60;   // modern high-quality engines
+    if(/google/.test(n)) s+=40;                                        // Google voices are smooth
+    if(/microsoft/.test(n)) s+=25;
+    if(/multilingual/.test(n)) s+=8;
+    if(lang.startsWith('en-gb')||/uk english|british/.test(n)) s+=30;  // storyteller British
+    else if(lang.startsWith('en-au')||lang.startsWith('en-ie')) s+=14;
+    else if(lang.startsWith('en')) s+=8;
+    // warm, narrator-friendly names get a nudge
+    if(/daniel|arthur|oliver|george|ryan|brian|libby|sonia|jenny|aria|guy|james|thomas|serena|stephanie|emma|amelia/.test(n)) s+=12;
+    // demote robotic / novelty / compact voices
+    if(/albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|trinoids|whisper|wobble|zarvox|fred|junior|ralph|kathy|compact|eloquence|espeak/.test(n)) s-=80;
+    if(!/^en/.test(lang)) s-=120;                                      // not English
+    return s;
+  },
+  voiceList(){ return (('speechSynthesis' in window)?speechSynthesis.getVoices():[]).filter(v=>/^en/i.test(v.lang||'')); },
   pickVoice(){ if(!('speechSynthesis' in window)) return; const vs=speechSynthesis.getVoices(); if(!vs.length) return;
-    const pref=['Google UK English Male','Google UK English Female','Google US English','Daniel','Serena','Arthur','Samantha','Microsoft Guy','Microsoft Aria'];
-    for(const name of pref){ const v=vs.find(x=>x.name===name); if(v){ this.voice=v; return; } }
-    this.voice = vs.find(x=>/en[-_]?GB/i.test(x.lang)) || vs.find(x=>/^en/i.test(x.lang)) || vs[0]; },
+    if(this.chosen){ const c=vs.find(v=>v.voiceURI===this.chosen||v.name===this.chosen); if(c){ this.voice=c; return; } }
+    this.voice = vs.slice().sort((a,b)=>this.score(b)-this.score(a))[0] || vs[0];
+  },
+  setVoice(idOrName){ const vs=speechSynthesis.getVoices(); const v=vs.find(x=>x.voiceURI===idOrName||x.name===idOrName); if(v){ this.voice=v; this.chosen=v.voiceURI||v.name; try{localStorage.setItem('torked_voice',this.chosen);}catch(e){} } },
   speak(text){ if(!this.on||!('speechSynthesis' in window)||!text) return; speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text.slice(0,600)); if(this.voice) u.voice=this.voice; u.rate=0.96; u.pitch=1.0; speechSynthesis.speak(u); },
+    // gentle storyteller cadence: a touch slower, natural pitch
+    const u=new SpeechSynthesisUtterance(text.slice(0,600)); if(this.voice) u.voice=this.voice; u.rate=0.9; u.pitch=1.0; u.volume=1; speechSynthesis.speak(u); },
   stop(){ if('speechSynthesis' in window) speechSynthesis.cancel(); }
 };
-if('speechSynthesis' in window){ TTS.pickVoice(); speechSynthesis.onvoiceschanged=()=>TTS.pickVoice(); }
+try{ TTS.chosen=localStorage.getItem('torked_voice')||null; }catch(e){}
+function buildVoiceMenu(){ const sel=document.getElementById('voicePick'); if(!sel) return; const vs=TTS.voiceList(); if(!vs.length) return;
+  const ranked=vs.slice().sort((a,b)=>TTS.score(b)-TTS.score(a));
+  sel.innerHTML=ranked.map(v=>`<option value="${(v.voiceURI||v.name).replace(/"/g,'')}"${(TTS.voice&&(v.voiceURI===TTS.voice.voiceURI))?' selected':''}>${(v.name||'Voice').replace(/[<>]/g,'')}</option>`).join('');
+}
+if('speechSynthesis' in window){ TTS.pickVoice(); speechSynthesis.onvoiceschanged=()=>{ TTS.pickVoice(); buildVoiceMenu(); }; }
 
 // ---------- procedural medieval background music (lute air + drone) ----------
 const MUSIC = {
@@ -1205,7 +1243,10 @@ document.querySelectorAll('.tabbar button').forEach(b=>b.addEventListener('click
 }));
 // sound + read-aloud toggles
 $('#sfxToggle').addEventListener('click',()=>{ SFX.on=!SFX.on; SFX.init(); $('#sfxToggle').classList.toggle('on',SFX.on); $('#sfxToggle').textContent=SFX.on?'🔊':'🔇'; if(SFX.on) SFX.play('gold'); });
-$('#ttsToggle').addEventListener('click',()=>{ TTS.on=!TTS.on; $('#ttsToggle').classList.toggle('on',TTS.on); if(TTS.on){ TTS.pickVoice(); TTS.speak('Your tale shall be told aloud.'); } else TTS.stop(); });
+$('#ttsToggle').addEventListener('click',()=>{ TTS.on=!TTS.on; $('#ttsToggle').classList.toggle('on',TTS.on);
+  const vp=document.getElementById('voicePick'); if(vp) vp.style.display=TTS.on?'':'none';
+  if(TTS.on){ TTS.pickVoice(); buildVoiceMenu(); TTS.speak('Your tale shall be told aloud.'); } else TTS.stop(); });
+{ const vp=document.getElementById('voicePick'); if(vp) vp.addEventListener('change',e=>{ TTS.setVoice(e.target.value); TTS.speak('A new voice takes up the tale.'); }); }
 // background music toggle + volume
 (function(){ const mb=$('#musToggle'), mv=$('#musVol'); if(!mb) return;
   mv.value=Math.round(MUSIC.vol*100);
